@@ -1,16 +1,16 @@
-<!-- static/index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Star Collector</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Clicker</title>
     <style>
         body {
-            background: #1a1a1a;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-family: Arial;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1a1a1a;
+            color: white;
+            padding: 20px;
         }
         #stars {
             font-size: 40px;
@@ -19,7 +19,7 @@
         .star-btn {
             padding: 15px 30px;
             font-size: 20px;
-            background: gold;
+            background-color: gold;
             border: none;
             border-radius: 10px;
             cursor: pointer;
@@ -27,6 +27,7 @@
     </style>
 </head>
 <body>
+    <h1>Star Clicker</h1>
     <div id="stars">⭐ 0</div>
     <button class="star-btn" onclick="collectStar()">Собрать звезду</button>
 
@@ -35,8 +36,6 @@
         function collectStar() {
             stars++;
             document.getElementById('stars').innerHTML = `⭐ ${stars}`;
-            document.body.style.backgroundColor = 
-                `hsl(${Math.random() * 360}, 70%, 15%)`;
         }
     </script>
 </body>
