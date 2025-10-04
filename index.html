@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Call - Real Firebase</title>
-    <!-- Иконки Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -1087,19 +1086,33 @@
                     });
                 });
 
-            // Слушаем изменения в наших исходящих звонках
+            // Слушаем ВСЕ звонки где мы участник (как звонящий или получатель)
             db.collection('calls')
-                .where('from', '==', currentUser.uid)
-                .where('status', 'in', ['calling', 'accepted', 'declined'])
+                .where('status', 'in', ['accepted', 'calling'])
                 .onSnapshot((snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         const callData = change.doc.data();
-                        if (change.type === 'modified') {
+                        
+                        // Если это наш активный звонок (мы звонящий или получатель)
+                        if ((callData.from === currentUser.uid || callData.to === currentUser.uid) && 
+                            change.type === 'modified') {
+                            
                             if (callData.status === 'accepted') {
                                 handleCallAccepted(callData, change.doc.id);
-                            } else if (callData.status === 'declined') {
-                                handleCallDeclined(callData);
                             }
+                        }
+                    });
+                });
+
+            // Слушаем отклоненные звонки
+            db.collection('calls')
+                .where('from', '==', currentUser.uid)
+                .where('status', '==', 'declined')
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'modified') {
+                            const callData = change.doc.data();
+                            handleCallDeclined(callData);
                         }
                     });
                 });
@@ -1182,6 +1195,25 @@
                     answeredAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 showToast('Звонок принят', 'success');
+                
+                // Получаем информацию о звонке и открываем окно
+                db.collection('calls').doc(incomingCallId).get().then((doc) => {
+                    if (doc.exists) {
+                        const callData = doc.data();
+                        currentCallId = incomingCallId;
+                        currentCallData = callData;
+                        isCaller = false;
+                        
+                        // Получаем информацию о звонящем
+                        db.collection('users').doc(callData.from).get().then((userDoc) => {
+                            if (userDoc.exists) {
+                                const user = userDoc.data();
+                                showCallWindow(user, callData.type);
+                                startWebRTC(false); // Мы получатель
+                            }
+                        });
+                    }
+                });
             }
         }
 
@@ -1201,15 +1233,32 @@
 
         // Обработка принятого звонка
         function handleCallAccepted(callData, callId) {
+            // Если мы уже в звонке, выходим
+            if (currentCallId) return;
+            
             currentCallId = callId;
             currentCallData = callData;
             
-            // Получаем информацию о пользователе
-            db.collection('users').doc(callData.to).get().then((doc) => {
+            // Определяем, кто мы в этом звонке
+            isCaller = callData.from === currentUser.uid;
+            
+            // Получаем информацию о другом пользователе
+            const otherUserId = isCaller ? callData.to : callData.from;
+            
+            db.collection('users').doc(otherUserId).get().then((doc) => {
                 if (doc.exists) {
                     const user = doc.data();
                     showCallWindow(user, callData.type);
-                    startWebRTC(true); // Мы звонивший, поэтому инициируем соединение
+                    
+                    if (isCaller) {
+                        // Мы звонивший - инициируем соединение
+                        showToast(`${user.displayName} принял(а) звонок`, 'success');
+                        startWebRTC(true);
+                    } else {
+                        // Мы получатель - ждем offer
+                        showToast('Соединение устанавливается...', 'info');
+                        startWebRTC(false);
+                    }
                 }
             });
         }
@@ -1408,6 +1457,7 @@
                     remoteVideo.srcObject = remoteStream;
                     remoteVideo.style.display = 'block';
                     remotePlaceholder.style.display = 'none';
+                    showToast('Соединение установлено!', 'success');
                 };
 
                 // Обработка ICE кандидатов
@@ -1428,6 +1478,8 @@
                         showToast('Соединение установлено!', 'success');
                     } else if (peerConnection.connectionState === 'disconnected') {
                         showToast('Соединение прервано', 'error');
+                    } else if (peerConnection.connectionState === 'failed') {
+                        showToast('Ошибка соединения', 'error');
                     }
                 };
 
