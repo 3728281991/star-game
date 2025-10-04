@@ -695,6 +695,20 @@
                 font-size: 20px;
             }
         }
+
+        /* Debug button */
+        .debug-btn {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            padding: 10px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 10000;
+        }
     </style>
     
     <!-- Firebase SDK -->
@@ -854,6 +868,9 @@
             <i class="fas fa-info-circle"></i>
             <span id="toast-message"></span>
         </div>
+
+        <!-- Debug button -->
+        <button class="debug-btn" onclick="debugConnection()">🐛 Debug</button>
     </div>
 
     <script>
@@ -885,7 +902,10 @@
         const pcConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
             ]
         };
 
@@ -966,7 +986,9 @@
                 isOnline: true
             };
             
-            db.collection('users').doc(user.uid).set(userData, { merge: true });
+            db.collection('users').doc(user.uid).set(userData, { merge: true })
+                .then(() => console.log('Пользователь сохранен в Firestore'))
+                .catch(error => console.error('Ошибка сохранения пользователя:', error));
         }
 
         // Выход из системы
@@ -976,13 +998,13 @@
                     status: 'offline',
                     isOnline: false,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                }).catch(error => console.error('Ошибка обновления статуса:', error));
                 
                 if (currentCallId) {
                     db.collection('calls').doc(currentCallId).update({
                         status: 'ended',
                         endedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    }).catch(error => console.error('Ошибка завершения звонка:', error));
                 }
                 endCall();
             }
@@ -992,9 +1014,11 @@
                     allContacts = [];
                     currentUser = null;
                     resetLoginButton();
+                    showToast('Вы вышли из системы', 'info');
                 })
                 .catch((error) => {
                     console.error('Ошибка выхода:', error);
+                    showToast('Ошибка при выходе', 'error');
                 });
         }
 
@@ -1006,6 +1030,7 @@
                 loadContactsFromFirestore();
                 listenForIncomingCalls();
                 setupPageVisibilityListener();
+                showToast('Успешный вход!', 'success');
             } else {
                 showLoginPage();
             }
@@ -1017,11 +1042,11 @@
                 if (currentUser && document.hidden) {
                     db.collection('users').doc(currentUser.uid).update({
                         status: 'away'
-                    });
+                    }).catch(error => console.error('Ошибка обновления статуса:', error));
                 } else if (currentUser && !document.hidden) {
                     db.collection('users').doc(currentUser.uid).update({
                         status: 'online'
-                    });
+                    }).catch(error => console.error('Ошибка обновления статуса:', error));
                 }
             });
         }
@@ -1086,14 +1111,13 @@
                     });
                 });
 
-            // Слушаем ВСЕ звонки где мы участник (как звонящий или получатель)
+            // Слушаем принятые звонки
             db.collection('calls')
                 .where('status', 'in', ['accepted', 'calling'])
                 .onSnapshot((snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         const callData = change.doc.data();
                         
-                        // Если это наш активный звонок (мы звонящий или получатель)
                         if ((callData.from === currentUser.uid || callData.to === currentUser.uid) && 
                             change.type === 'modified') {
                             
@@ -1116,13 +1140,12 @@
                         }
                     });
                 });
-
-            // Слушаем ICE кандидаты и SDP offers/answers
-            listenForWebRTCSignaling();
         }
 
         // Показать входящий звонок
         function showIncomingCall(callData) {
+            console.log('Входящий звонок:', callData);
+            
             // Браузерное уведомление
             if (Notification.permission === 'granted') {
                 new Notification('Входящий звонок 📞', {
@@ -1142,7 +1165,7 @@
                 notificationAvatar.style.backgroundSize = 'cover';
                 notificationAvatar.innerHTML = '';
             } else {
-                notificationAvatar.innerHTML = `<i class="fas fa-user"></i>`;
+                notificationAvatar.innerHTML = getInitials(callData.fromName);
                 notificationAvatar.style.backgroundImage = 'none';
             }
             
@@ -1193,26 +1216,30 @@
                 db.collection('calls').doc(incomingCallId).update({
                     status: 'accepted',
                     answeredAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                showToast('Звонок принят', 'success');
-                
-                // Получаем информацию о звонке и открываем окно
-                db.collection('calls').doc(incomingCallId).get().then((doc) => {
-                    if (doc.exists) {
-                        const callData = doc.data();
-                        currentCallId = incomingCallId;
-                        currentCallData = callData;
-                        isCaller = false;
-                        
-                        // Получаем информацию о звонящем
-                        db.collection('users').doc(callData.from).get().then((userDoc) => {
-                            if (userDoc.exists) {
-                                const user = userDoc.data();
-                                showCallWindow(user, callData.type);
-                                startWebRTC(false); // Мы получатель
-                            }
-                        });
-                    }
+                }).then(() => {
+                    showToast('Звонок принят', 'success');
+                    
+                    // Получаем информацию о звонке
+                    db.collection('calls').doc(incomingCallId).get().then((doc) => {
+                        if (doc.exists) {
+                            const callData = doc.data();
+                            currentCallId = incomingCallId;
+                            currentCallData = callData;
+                            isCaller = false;
+                            
+                            // Получаем информацию о звонящем
+                            db.collection('users').doc(callData.from).get().then((userDoc) => {
+                                if (userDoc.exists) {
+                                    const user = userDoc.data();
+                                    showCallWindow(user, callData.type);
+                                    setTimeout(() => startWebRTC(false), 500);
+                                }
+                            });
+                        }
+                    });
+                }).catch(error => {
+                    console.error('Ошибка принятия звонка:', error);
+                    showToast('Ошибка при принятии звонка', 'error');
                 });
             }
         }
@@ -1225,24 +1252,26 @@
                 db.collection('calls').doc(incomingCallId).update({
                     status: 'declined',
                     endedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    showToast('Звонок отклонен', 'info');
+                    incomingCallId = null;
+                }).catch(error => {
+                    console.error('Ошибка отклонения звонка:', error);
+                    showToast('Ошибка при отклонении звонка', 'error');
                 });
-                showToast('Звонок отклонен', 'info');
-                incomingCallId = null;
             }
         }
 
         // Обработка принятого звонка
         function handleCallAccepted(callData, callId) {
-            // Если мы уже в звонке, выходим
             if (currentCallId) return;
             
+            console.log('Звонок принят другим пользователем:', callData);
             currentCallId = callId;
             currentCallData = callData;
             
-            // Определяем, кто мы в этом звонке
             isCaller = callData.from === currentUser.uid;
             
-            // Получаем информацию о другом пользователе
             const otherUserId = isCaller ? callData.to : callData.from;
             
             db.collection('users').doc(otherUserId).get().then((doc) => {
@@ -1251,13 +1280,11 @@
                     showCallWindow(user, callData.type);
                     
                     if (isCaller) {
-                        // Мы звонивший - инициируем соединение
                         showToast(`${user.displayName} принял(а) звонок`, 'success');
-                        startWebRTC(true);
+                        setTimeout(() => startWebRTC(true), 500);
                     } else {
-                        // Мы получатель - ждем offer
                         showToast('Соединение устанавливается...', 'info');
-                        startWebRTC(false);
+                        setTimeout(() => startWebRTC(false), 500);
                     }
                 }
             });
@@ -1267,41 +1294,6 @@
         function handleCallDeclined(callData) {
             showToast(`${callData.toEmail} отклонил(а) ваш звонок`, 'error');
             endCall();
-        }
-
-        // Прослушивание WebRTC signaling
-        function listenForWebRTCSignaling() {
-            if (!currentCallId) return;
-
-            // Слушаем SDP offers
-            db.collection('calls').doc(currentCallId).collection('offers').onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added' && !isCaller) {
-                        const offer = change.doc.data();
-                        handleOffer(offer);
-                    }
-                });
-            });
-
-            // Слушаем SDP answers
-            db.collection('calls').doc(currentCallId).collection('answers').onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added' && isCaller) {
-                        const answer = change.doc.data();
-                        handleAnswer(answer);
-                    }
-                });
-            });
-
-            // Слушаем ICE кандидаты
-            db.collection('calls').doc(currentCallId).collection('iceCandidates').onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        const candidate = change.doc.data();
-                        handleIceCandidate(candidate);
-                    }
-                });
-            });
         }
 
         // Начать быстрый звонок
@@ -1317,7 +1309,6 @@
                 return;
             }
 
-            // Ищем пользователя
             db.collection('users')
                 .where('email', '==', targetEmail)
                 .where('isOnline', '==', true)
@@ -1331,7 +1322,6 @@
                     const userDoc = snapshot.docs[0];
                     const targetUser = userDoc.data();
                     
-                    // Создаем звонок
                     const callData = {
                         from: currentUser.uid,
                         fromName: currentUser.displayName,
@@ -1401,7 +1391,6 @@
             remoteUserName.textContent = contact.name;
             callWindow.classList.add('active');
             
-            // Показываем соответствующие плейсхолдеры
             localPlaceholder.style.display = 'flex';
             remotePlaceholder.style.display = 'flex';
             localVideo.style.display = 'none';
@@ -1410,128 +1399,212 @@
 
         // WebRTC инициализация
         async function startWebRTC(isInitiator) {
+            console.log('Starting WebRTC, isCaller:', isInitiator);
+            
             try {
-                isCaller = isInitiator;
-
-                // Получаем медиапоток с обработкой ошибок
-                const constraints = {
-                    audio: true,
-                    video: isCaller || (currentCallData && currentCallData.type === 'video')
-                };
-                
-                try {
-                    localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                    
-                    // Показываем локальное видео
-                    localVideo.srcObject = localStream;
-                    localVideo.style.display = 'block';
-                    localPlaceholder.style.display = 'none';
-                    
-                } catch (mediaError) {
-                    console.warn('Ошибка доступа к медиаустройствам:', mediaError);
-                    
-                    // Показываем сообщение об ошибке
-                    if (mediaError.name === 'NotAllowedError') {
-                        showToast('Доступ к камере/микрофону запрещен', 'error');
-                    } else if (mediaError.name === 'NotFoundError') {
-                        showToast('Камера/микрофон не найдены', 'error');
-                    } else {
-                        showToast('Ошибка доступа к камере/микрофону', 'error');
-                    }
-                    
-                    // Продолжаем без медиапотока
-                    localStream = new MediaStream();
+                if (peerConnection) {
+                    peerConnection.close();
                 }
 
-                // Создаем peer connection
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+
                 peerConnection = new RTCPeerConnection(pcConfig);
 
-                // Добавляем локальные треки, если они есть
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-
-                // Получаем удаленный поток
-                peerConnection.ontrack = (event) => {
-                    remoteStream = event.streams[0];
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideo.style.display = 'block';
-                    remotePlaceholder.style.display = 'none';
-                    showToast('Соединение установлено!', 'success');
-                };
-
-                // Обработка ICE кандидатов
                 peerConnection.onicecandidate = (event) => {
+                    console.log('ICE candidate generated:', event.candidate);
                     if (event.candidate && currentCallId) {
                         db.collection('calls').doc(currentCallId).collection('iceCandidates').add({
                             candidate: event.candidate.toJSON(),
                             from: currentUser.uid,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            timestamp: Date.now()
+                        }).catch(error => {
+                            console.error('Error saving ICE candidate:', error);
                         });
                     }
                 };
 
-                // Обработка изменения состояния соединения
+                peerConnection.ontrack = (event) => {
+                    console.log('Remote track received:', event.streams);
+                    remoteStream = event.streams[0];
+                    if (remoteStream) {
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.style.display = 'block';
+                        remotePlaceholder.style.display = 'none';
+                        showToast('Удаленное подключение установлено!', 'success');
+                    }
+                };
+
                 peerConnection.onconnectionstatechange = () => {
                     console.log('Connection state:', peerConnection.connectionState);
                     if (peerConnection.connectionState === 'connected') {
                         showToast('Соединение установлено!', 'success');
                     } else if (peerConnection.connectionState === 'disconnected') {
                         showToast('Соединение прервано', 'error');
+                        endCall();
                     } else if (peerConnection.connectionState === 'failed') {
                         showToast('Ошибка соединения', 'error');
+                        endCall();
                     }
                 };
 
-                if (isCaller) {
-                    // Создаем offer
-                    const offer = await peerConnection.createOffer();
-                    await peerConnection.setLocalDescription(offer);
+                const constraints = {
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    },
+                    video: currentCallData && currentCallData.type === 'video' ? {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } : false
+                };
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                localVideo.srcObject = localStream;
+                localVideo.style.display = 'block';
+                localPlaceholder.style.display = 'none';
+
+                if (isInitiator) {
+                    const offer = await peerConnection.createOffer({
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: currentCallData.type === 'video'
+                    });
                     
-                    // Сохраняем offer в Firestore
+                    await peerConnection.setLocalDescription(offer);
+                    console.log('Local description set:', offer.type);
+
                     await db.collection('calls').doc(currentCallId).collection('offers').add({
                         sdp: offer,
                         from: currentUser.uid,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        timestamp: Date.now()
                     });
+
+                    console.log('Offer saved to Firestore');
                 }
+
+                listenForWebRTCSignaling();
 
             } catch (error) {
                 console.error('WebRTC ошибка:', error);
-                showToast('Ошибка установления соединения', 'error');
+                showToast('Ошибка установления соединения: ' + error.message, 'error');
                 endCall();
             }
         }
 
-        // Обработка SDP offer
+        // Прослушивание signaling данных
+        function listenForWebRTCSignaling() {
+            if (!currentCallId) return;
+
+            console.log('Listening for signaling on call:', currentCallId);
+
+            if (!isCaller) {
+                db.collection('calls').doc(currentCallId).collection('offers')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .onSnapshot((snapshot) => {
+                        snapshot.docChanges().forEach((change) => {
+                            if (change.type === 'added') {
+                                console.log('New offer received');
+                                const offer = change.doc.data();
+                                handleOffer(offer);
+                            }
+                        });
+                    });
+            }
+
+            if (isCaller) {
+                db.collection('calls').doc(currentCallId).collection('answers')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .onSnapshot((snapshot) => {
+                        snapshot.docChanges().forEach((change) => {
+                            if (change.type === 'added') {
+                                console.log('New answer received');
+                                const answer = change.doc.data();
+                                handleAnswer(answer);
+                            }
+                        });
+                    });
+            }
+
+            db.collection('calls').doc(currentCallId).collection('iceCandidates')
+                .where('from', '!=', currentUser.uid)
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            console.log('New ICE candidate received');
+                            const candidate = change.doc.data();
+                            handleIceCandidate(candidate);
+                        }
+                    });
+                });
+        }
+
+        // Обработка offer
         async function handleOffer(offerData) {
+            console.log('Handling offer');
+            
             if (!peerConnection) {
-                await startWebRTC(false);
+                console.error('No peer connection for handling offer');
+                return;
             }
 
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData.sdp));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData.sdp));
+                console.log('Remote description set from offer');
 
-            // Сохраняем answer в Firestore
-            await db.collection('calls').doc(currentCallId).collection('answers').add({
-                sdp: answer,
-                from: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                console.log('Answer created and local description set');
+
+                await db.collection('calls').doc(currentCallId).collection('answers').add({
+                    sdp: answer,
+                    from: currentUser.uid,
+                    timestamp: Date.now()
+                });
+
+                console.log('Answer saved to Firestore');
+
+            } catch (error) {
+                console.error('Error handling offer:', error);
+            }
         }
 
-        // Обработка SDP answer
+        // Обработка answer
         async function handleAnswer(answerData) {
-            if (peerConnection) {
+            console.log('Handling answer');
+            
+            if (!peerConnection) {
+                console.error('No peer connection for handling answer');
+                return;
+            }
+
+            try {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(answerData.sdp));
+                console.log('Remote description set from answer');
+            } catch (error) {
+                console.error('Error handling answer:', error);
             }
         }
 
-        // Обработка ICE кандидата
+        // Обработка ICE кандидатов
         async function handleIceCandidate(candidateData) {
-            if (peerConnection && candidateData.from !== currentUser.uid) {
+            if (!peerConnection) {
+                console.error('No peer connection for ICE candidate');
+                return;
+            }
+
+            try {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidateData.candidate));
+                console.log('ICE candidate added successfully');
+            } catch (error) {
+                console.error('Error adding ICE candidate:', error);
             }
         }
 
@@ -1541,7 +1614,7 @@
                 db.collection('calls').doc(currentCallId).update({
                     status: 'ended',
                     endedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                }).catch(error => console.error('Ошибка завершения звонка:', error));
                 currentCallId = null;
             }
             
@@ -1552,7 +1625,6 @@
             callWindow.classList.remove('active');
             callNotification.classList.remove('active');
             
-            // Останавливаем потоки
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
@@ -1571,7 +1643,6 @@
             isMuted = false;
             isVideoOff = false;
             
-            // Сбрасываем кнопки
             const muteBtn = document.getElementById('mute-btn');
             const videoBtn = document.getElementById('video-btn');
             muteBtn.className = 'control-btn mute-btn';
@@ -1599,8 +1670,6 @@
                         muteBtn.classList.remove('muted');
                         showToast('Микрофон включен', 'success');
                     }
-                } else {
-                    showToast('Микрофон недоступен', 'error');
                 }
             }
         }
@@ -1628,10 +1697,22 @@
                         localPlaceholder.style.display = 'none';
                         showToast('Камера включена', 'success');
                     }
-                } else {
-                    showToast('Камера недоступна', 'error');
                 }
             }
+        }
+
+        // Отладка
+        function debugConnection() {
+            console.log('=== DEBUG INFO ===');
+            console.log('Current User:', currentUser?.email);
+            console.log('Current Call ID:', currentCallId);
+            console.log('Is Caller:', isCaller);
+            console.log('Peer Connection:', peerConnection?.connectionState);
+            console.log('Local Stream:', !!localStream);
+            console.log('Remote Stream:', !!remoteStream);
+            console.log('All Contacts:', allContacts.length);
+            console.log('==================');
+            showToast('Информация для отладки в консоли', 'info');
         }
 
         // Вспомогательные функции
@@ -1643,7 +1724,6 @@
                 .substring(0, 2);
         }
 
-        // Отображение контактов
         function displayContacts(contacts) {
             contactsList.innerHTML = contacts.map(contact => `
                 <div class="contact-item">
@@ -1715,7 +1795,6 @@
         function init() {
             console.log('Video Call Real Firebase приложение инициализировано');
             
-            // Запрос разрешения на уведомления
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
             }
