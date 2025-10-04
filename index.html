@@ -3,40 +3,731 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Star Clicker</title>
+    <title>Video Call</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #1a1a1a;
-            color: white;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .page {
+            display: none;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Страница входа */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
             padding: 20px;
         }
-        #stars {
-            font-size: 40px;
-            margin: 20px;
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
         }
-        .star-btn {
-            padding: 15px 30px;
-            font-size: 20px;
-            background-color: gold;
+
+        .logo {
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 15px 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .google-btn:hover {
+            border-color: #4285F4;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .google-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .features {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+        }
+
+        .feature {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Главная страница */
+        .header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: #ff4757;
+            color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #ff3742;
+        }
+
+        .main-content {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .contacts-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .contacts-header {
+            padding: 30px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .contacts-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .search-box input {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            width: 300px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #6a11cb;
+        }
+
+        .contacts-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 1px solid #f8f8f8;
+            transition: background 0.3s ease;
             cursor: pointer;
         }
+
+        .contact-item:hover {
+            background: #f8f9fa;
+        }
+
+        .contact-item:last-child {
+            border-bottom: none;
+        }
+
+        .contact-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            margin-right: 15px;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .contact-email {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .contact-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-authorized {
+            background: #e8f5e8;
+            color: #2ecc71;
+        }
+
+        .status-unauthorized {
+            background: #ffeaea;
+            color: #e74c3c;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .no-contacts {
+            text-align: center;
+            padding: 60px 40px;
+            color: #999;
+        }
+
+        .permission-request {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 30px;
+            text-align: center;
+        }
+
+        .permission-btn {
+            background: #4285F4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .permission-btn:hover {
+            background: #3367d6;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .contacts-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .contact-item {
+                padding: 15px 20px;
+            }
+        }
     </style>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
 </head>
 <body>
-    <h1>Star Clicker</h1>
-    <div id="stars">⭐ 0</div>
-    <button class="star-btn" onclick="collectStar()">Собрать звезду</button>
+    <div id="app">
+        <!-- Страница входа -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="logo">
+                        <div class="logo-icon">📞</div>
+                        <h1>Video Call</h1>
+                    </div>
+                    <p class="login-subtitle">Безопасные видеозвонки в один клик</p>
+                    <button id="google-signin-btn" class="google-btn">
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Войти через Google
+                    </button>
+                    <div class="features">
+                        <div class="feature">
+                            <span>🔒</span>
+                            <span>Безопасно</span>
+                        </div>
+                        <div class="feature">
+                            <span>⚡</span>
+                            <span>Быстро</span>
+                        </div>
+                        <div class="feature">
+                            <span>🎯</span>
+                            <span>Просто</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Главная страница с контактами -->
+        <div id="main-page" class="page">
+            <header class="header">
+                <div class="header-content">
+                    <div class="header-left">
+                        <h1>Video Call</h1>
+                        <span id="user-email" class="user-email"></span>
+                    </div>
+                    <div class="header-right">
+                        <button id="logout-btn" class="logout-btn">Выйти</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <div class="contacts-container">
+                    <div class="contacts-header">
+                        <h2>Контакты</h2>
+                        <div class="search-box">
+                            <input type="text" id="search-contacts" placeholder="Поиск контактов...">
+                        </div>
+                    </div>
+                    
+                    <div id="permission-section" class="permission-request" style="display: none;">
+                        <h3>Доступ к контактам</h3>
+                        <p>Для отображения ваших контактов необходимо предоставить доступ</p>
+                        <button id="request-permission-btn" class="permission-btn">Разрешить доступ к контактам</button>
+                    </div>
+                    
+                    <div class="contacts-list" id="contacts-list">
+                        <div class="loading">Загрузка контактов...</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
 
     <script>
-        let stars = 0;
-        function collectStar() {
-            stars++;
-            document.getElementById('stars').innerHTML = `⭐ ${stars}`;
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
+            authDomain: "video-call-94d0b.firebaseapp.com",
+            projectId: "video-call-94d0b",
+            storageBucket: "video-call-94d0b.firebasestorage.app",
+            messagingSenderId: "973586453149",
+            appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
+            measurementId: "G-TVLP5WTJGP"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const analytics = firebase.analytics();
+        const auth = firebase.auth();
+
+        // Элементы DOM
+        const loginPage = document.getElementById('login-page');
+        const mainPage = document.getElementById('main-page');
+        const googleSigninBtn = document.getElementById('google-signin-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userEmail = document.getElementById('user-email');
+        const contactsList = document.getElementById('contacts-list');
+        const searchContacts = document.getElementById('search-contacts');
+        const permissionSection = document.getElementById('permission-section');
+        const requestPermissionBtn = document.getElementById('request-permission-btn');
+
+        // Переменные
+        let allContacts = [];
+        let accessToken = null;
+
+        // Слушатели событий
+        googleSigninBtn.addEventListener('click', signInWithGoogle);
+        logoutBtn.addEventListener('click', handleLogout);
+        searchContacts.addEventListener('input', filterContacts);
+        requestPermissionBtn.addEventListener('click', requestContactsPermission);
+
+        // Авторизация через Google
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // Запрашиваем дополнительные разрешения
+            provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+            provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+            provider.addScope('https://www.googleapis.com/auth/userinfo.email');
+            
+            googleSigninBtn.disabled = true;
+            googleSigninBtn.innerHTML = '🔄 Авторизация...';
+            
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    // Успешная авторизация
+                    const credential = result.credential;
+                    accessToken = credential.accessToken;
+                    console.log('Успешный вход:', result.user);
+                    analytics.logEvent('login', { method: 'Google' });
+                })
+                .catch((error) => {
+                    console.error('Ошибка авторизации:', error);
+                    alert('Ошибка при авторизации. Попробуйте еще раз.');
+                    resetLoginButton();
+                });
         }
+
+        // Выход из системы
+        function handleLogout() {
+            auth.signOut()
+                .then(() => {
+                    accessToken = null;
+                    allContacts = [];
+                    resetLoginButton();
+                })
+                .catch((error) => {
+                    console.error('Ошибка выхода:', error);
+                });
+        }
+
+        // Слушатель состояния авторизации
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Пользователь авторизован
+                showMainPage(user);
+                checkContactsPermission();
+            } else {
+                // Пользователь не авторизован
+                showLoginPage();
+            }
+        });
+
+        // Проверка разрешения на доступ к контактам
+        function checkContactsPermission() {
+            if (!accessToken) {
+                showPermissionRequest();
+                return;
+            }
+            
+            // Проверяем, есть ли у нас доступ к контактам
+            fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,photos&pageSize=50', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.json();
+                } else if (response.status === 403) {
+                    showPermissionRequest();
+                    throw new Error('Нет доступа к контактам');
+                } else {
+                    throw new Error('Ошибка при загрузке контактов');
+                }
+            })
+            .then(data => {
+                loadGoogleContacts(data.connections || []);
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                // Показываем демо-контакты, если нет доступа к реальным
+                loadDemoContacts();
+            });
+        }
+
+        // Запрос разрешения на доступ к контактам
+        function requestContactsPermission() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+            
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const credential = result.credential;
+                    accessToken = credential.accessToken;
+                    checkContactsPermission();
+                })
+                .catch((error) => {
+                    console.error('Ошибка при запросе разрешений:', error);
+                    loadDemoContacts();
+                });
+        }
+
+        // Загрузка контактов из Google People API
+        function loadGoogleContacts(connections) {
+            allContacts = connections
+                .filter(contact => 
+                    contact.names && contact.names[0] && 
+                    contact.emailAddresses && contact.emailAddresses[0]
+                )
+                .map(contact => {
+                    const name = contact.names[0].displayName;
+                    const email = contact.emailAddresses[0].value;
+                    const photo = contact.photos && contact.photos[0] ? contact.photos[0].url : null;
+                    
+                    return {
+                        name: name,
+                        email: email,
+                        photo: photo,
+                        initials: getInitials(name),
+                        isAuthorized: Math.random() > 0.3 // Случайный статус для демонстрации
+                    };
+                });
+            
+            if (allContacts.length === 0) {
+                loadDemoContacts();
+            } else {
+                displayContacts(allContacts);
+                permissionSection.style.display = 'none';
+            }
+        }
+
+        // Загрузка демо-контактов (если нет доступа к реальным)
+        function loadDemoContacts() {
+            allContacts = [
+                {
+                    name: 'Александр Иванов',
+                    email: 'alex.ivanov@gmail.com',
+                    photo: null,
+                    initials: 'АИ',
+                    isAuthorized: true
+                },
+                {
+                    name: 'Мария Петрова',
+                    email: 'maria.petrova@company.com',
+                    photo: null,
+                    initials: 'МП',
+                    isAuthorized: false
+                },
+                {
+                    name: 'Дмитрий Сидоров',
+                    email: 'dmitry.sidorov@gmail.com',
+                    photo: null,
+                    initials: 'ДС',
+                    isAuthorized: true
+                },
+                {
+                    name: 'Екатерина Смирнова',
+                    email: 'ek.smirnova@yahoo.com',
+                    photo: null,
+                    initials: 'ЕС',
+                    isAuthorized: true
+                },
+                {
+                    name: 'Сергей Козлов',
+                    email: 's.kozlov@corporation.com',
+                    photo: null,
+                    initials: 'СК',
+                    isAuthorized: false
+                },
+                {
+                    name: 'Анна Волкова',
+                    email: 'anna.volkova@gmail.com',
+                    photo: null,
+                    initials: 'АВ',
+                    isAuthorized: true
+                }
+            ];
+            
+            displayContacts(allContacts);
+        }
+
+        // Получение инициалов из имени
+        function getInitials(name) {
+            return name.split(' ')
+                .map(part => part[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        // Отображение контактов
+        function displayContacts(contacts) {
+            if (contacts.length === 0) {
+                contactsList.innerHTML = `
+                    <div class="no-contacts">
+                        <h3>Контакты не найдены</h3>
+                        <p>Попробуйте изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+
+            contactsList.innerHTML = contacts.map(contact => `
+                <div class="contact-item">
+                    <div class="contact-avatar" style="${contact.photo ? `background-image: url('${contact.photo}'); background-size: cover;` : ''}">
+                        ${contact.photo ? '' : contact.initials}
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-name">${contact.name}</div>
+                        <div class="contact-email">${contact.email}</div>
+                    </div>
+                    <div class="contact-status ${contact.isAuthorized ? 'status-authorized' : 'status-unauthorized'}">
+                        ${contact.isAuthorized ? '✅ В приложении' : '❌ Не в приложении'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Фильтрация контактов
+        function filterContacts() {
+            const searchTerm = searchContacts.value.toLowerCase();
+            const filteredContacts = allContacts.filter(contact => 
+                contact.name.toLowerCase().includes(searchTerm) ||
+                contact.email.toLowerCase().includes(searchTerm)
+            );
+            displayContacts(filteredContacts);
+        }
+
+        // Показать страницу входа
+        function showLoginPage() {
+            loginPage.classList.add('active');
+            mainPage.classList.remove('active');
+        }
+
+        // Показать главную страницу
+        function showMainPage(user) {
+            loginPage.classList.remove('active');
+            mainPage.classList.add('active');
+            userEmail.textContent = user.email;
+        }
+
+        // Показать запрос разрешений
+        function showPermissionRequest() {
+            permissionSection.style.display = 'block';
+            contactsList.innerHTML = '<div class="loading">Ожидание разрешения...</div>';
+        }
+
+        // Сброс кнопки входа
+        function resetLoginButton() {
+            googleSigninBtn.disabled = false;
+            googleSigninBtn.innerHTML = `
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Войти через Google
+            `;
+        }
+
+        // Инициализация приложения
+        function init() {
+            console.log('Video Call приложение инициализировано');
+        }
+
+        // Запуск приложения
+        init();
     </script>
 </body>
 </html>
