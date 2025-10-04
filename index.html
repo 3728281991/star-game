@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Call - Real Firebase</title>
+    <!-- Иконки Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -54,6 +56,7 @@
         .logo-icon {
             font-size: 48px;
             margin-bottom: 10px;
+            color: #6a11cb;
         }
 
         .logo h1 {
@@ -367,6 +370,10 @@
             cursor: pointer;
             margin-bottom: 10px;
             transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .quick-call-btn:hover {
@@ -411,6 +418,7 @@
             border-radius: 15px;
             overflow: hidden;
             background: #000;
+            min-height: 300px;
         }
 
         .video-wrapper video {
@@ -425,30 +433,73 @@
             left: 10px;
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
             font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            background: #2c3e50;
+        }
+
+        .video-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+            opacity: 0.7;
         }
 
         .call-controls {
-            padding: 20px;
+            padding: 30px;
             background: rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 25px;
+            backdrop-filter: blur(10px);
         }
 
         .control-btn {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             border: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 24px;
             transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .control-btn::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .control-btn:hover::after {
+            opacity: 1;
         }
 
         .accept-call {
@@ -481,6 +532,10 @@
             transform: scale(1.1);
         }
 
+        .mute-btn.muted {
+            background: #EA4335;
+        }
+
         .video-btn {
             background: #FBBC05;
             color: white;
@@ -489,6 +544,10 @@
         .video-btn:hover {
             background: #e6a800;
             transform: scale(1.1);
+        }
+
+        .video-btn.off {
+            background: #EA4335;
         }
 
         /* Уведомление о звонке */
@@ -541,6 +600,51 @@
             gap: 10px;
         }
 
+        /* Уведомления */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            z-index: 1002;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.show {
+            display: flex;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                top: -100px;
+                opacity: 0;
+            }
+            to {
+                top: 20px;
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            background: #34A853;
+        }
+
+        .toast.error {
+            background: #EA4335;
+        }
+
+        .toast.info {
+            background: #4285F4;
+        }
+
         /* Адаптивность */
         @media (max-width: 768px) {
             .dashboard {
@@ -580,6 +684,17 @@
                 right: 20px;
                 max-width: none;
             }
+
+            .call-controls {
+                gap: 15px;
+                padding: 20px;
+            }
+
+            .control-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
+            }
         }
     </style>
     
@@ -595,7 +710,7 @@
             <div class="login-container">
                 <div class="login-card">
                     <div class="logo">
-                        <div class="logo-icon">📞</div>
+                        <div class="logo-icon"><i class="fas fa-video"></i></div>
                         <h1>Video Call - Real Firebase</h1>
                     </div>
                     <p class="login-subtitle">Полнофункциональные видеозвонки через WebRTC</p>
@@ -610,15 +725,15 @@
                     </button>
                     <div class="features">
                         <div class="feature">
-                            <span>🔒</span>
+                            <span><i class="fas fa-shield-alt"></i></span>
                             <span>Firebase</span>
                         </div>
                         <div class="feature">
-                            <span>⚡</span>
+                            <span><i class="fas fa-bolt"></i></span>
                             <span>WebRTC</span>
                         </div>
                         <div class="feature">
-                            <span>🎯</span>
+                            <span><i class="fas fa-clock"></i></span>
                             <span>Real Time</span>
                         </div>
                     </div>
@@ -631,11 +746,11 @@
             <header class="header">
                 <div class="header-content">
                     <div class="header-left">
-                        <h1>Video Call - Real Firebase</h1>
+                        <h1><i class="fas fa-video"></i> Video Call - Real Firebase</h1>
                         <span id="user-email" class="user-email"></span>
                     </div>
                     <div class="header-right">
-                        <button id="logout-btn" class="logout-btn">Выйти</button>
+                        <button id="logout-btn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Выйти</button>
                     </div>
                 </div>
             </header>
@@ -644,29 +759,29 @@
                 <div class="dashboard">
                     <div class="contacts-container">
                         <div class="contacts-header">
-                            <h2>Онлайн пользователи</h2>
+                            <h2><i class="fas fa-users"></i> Онлайн пользователи</h2>
                             <div class="search-box">
                                 <input type="text" id="search-contacts" placeholder="Поиск пользователей...">
                             </div>
                         </div>
                         
                         <div class="contacts-list" id="contacts-list">
-                            <div class="loading">Загрузка пользователей...</div>
+                            <div class="loading"><i class="fas fa-spinner fa-spin"></i> Загрузка пользователей...</div>
                         </div>
                     </div>
 
                     <div class="call-container">
                         <div class="call-panel">
-                            <h3>Быстрый звонок</h3>
+                            <h3><i class="fas fa-phone"></i> Быстрый звонок</h3>
                             <input type="text" id="call-input" class="call-input" placeholder="Введите email пользователя">
                             <button class="quick-call-btn" onclick="startQuickCall('video')">
-                                📹 Начать видеозвонок
+                                <i class="fas fa-video"></i> Начать видеозвонок
                             </button>
                             <button class="quick-call-btn voice-call-btn" onclick="startQuickCall('audio')">
-                                📞 Начать голосовой звонок
+                                <i class="fas fa-phone"></i> Начать голосовой звонок
                             </button>
                             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                                <h4>Инструкция:</h4>
+                                <h4><i class="fas fa-info-circle"></i> Инструкция:</h4>
                                 <p style="font-size: 14px; color: #666;">
                                     1. Откройте в двух разных браузерах<br>
                                     2. Войдите под разными Google аккаунтами<br>
@@ -684,31 +799,61 @@
             <div class="video-container">
                 <div class="video-wrapper">
                     <video id="local-video" autoplay muted></video>
-                    <div class="video-label">Вы</div>
+                    <div class="video-label">
+                        <i class="fas fa-user"></i> Вы
+                    </div>
+                    <div class="video-placeholder" id="local-placeholder">
+                        <i class="fas fa-camera"></i>
+                        <span>Ваша камера</span>
+                    </div>
                 </div>
                 <div class="video-wrapper">
                     <video id="remote-video" autoplay></video>
-                    <div class="video-label" id="remote-user-name">Удаленный пользователь</div>
+                    <div class="video-label">
+                        <i class="fas fa-user"></i> <span id="remote-user-name">Удаленный пользователь</span>
+                    </div>
+                    <div class="video-placeholder" id="remote-placeholder">
+                        <i class="fas fa-user-clock"></i>
+                        <span>Ожидание подключения...</span>
+                    </div>
                 </div>
             </div>
             <div class="call-controls">
-                <button class="control-btn mute-btn" id="mute-btn" onclick="toggleMute()">🎤</button>
-                <button class="control-btn video-btn" id="video-btn" onclick="toggleVideo()">📹</button>
-                <button class="control-btn decline-call" onclick="endCall()">📵</button>
+                <button class="control-btn mute-btn" id="mute-btn" onclick="toggleMute()" title="Микрофон">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="control-btn video-btn" id="video-btn" onclick="toggleVideo()" title="Камера">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button class="control-btn decline-call" onclick="endCall()" title="Завершить">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
             </div>
         </div>
 
         <!-- Уведомление о входящем звонке -->
         <div id="call-notification" class="call-notification">
-            <div class="notification-avatar" id="notification-avatar">U</div>
+            <div class="notification-avatar" id="notification-avatar">
+                <i class="fas fa-user"></i>
+            </div>
             <div class="notification-info">
                 <h4 id="notification-name">Входящий звонок</h4>
-                <p id="notification-type">Видеозвонок...</p>
+                <p id="notification-type"><i class="fas fa-video"></i> Видеозвонок...</p>
             </div>
             <div class="notification-actions">
-                <button class="control-btn accept-call" onclick="acceptIncomingCall()">📞</button>
-                <button class="control-btn decline-call" onclick="declineIncomingCall()">📵</button>
+                <button class="control-btn accept-call" onclick="acceptIncomingCall()" title="Ответить">
+                    <i class="fas fa-phone"></i>
+                </button>
+                <button class="control-btn decline-call" onclick="declineIncomingCall()" title="Отклонить">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
             </div>
+        </div>
+
+        <!-- Toast уведомления -->
+        <div class="toast" id="toast">
+            <i class="fas fa-info-circle"></i>
+            <span id="toast-message"></span>
         </div>
     </div>
 
@@ -762,16 +907,31 @@
         const notificationAvatar = document.getElementById('notification-avatar');
         const notificationName = document.getElementById('notification-name');
         const notificationType = document.getElementById('notification-type');
+        const localPlaceholder = document.getElementById('local-placeholder');
+        const remotePlaceholder = document.getElementById('remote-placeholder');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
 
         // Переменные
         let allContacts = [];
         let currentUser = null;
         let incomingCallId = null;
+        let isMuted = false;
+        let isVideoOff = false;
 
         // Слушатели событий
         googleSigninBtn.addEventListener('click', signInWithGoogle);
         logoutBtn.addEventListener('click', handleLogout);
         searchContacts.addEventListener('input', filterContacts);
+
+        // Показать уведомление
+        function showToast(message, type = 'info') {
+            toastMessage.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
 
         // Авторизация через Google
         function signInWithGoogle() {
@@ -780,7 +940,7 @@
             provider.addScope('email');
             
             googleSigninBtn.disabled = true;
-            googleSigninBtn.innerHTML = '🔄 Авторизация...';
+            googleSigninBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Авторизация...';
             
             auth.signInWithPopup(provider)
                 .then((result) => {
@@ -790,7 +950,7 @@
                 })
                 .catch((error) => {
                     console.error('Ошибка авторизации:', error);
-                    alert('Ошибка при авторизации. Попробуйте еще раз.');
+                    showToast('Ошибка при авторизации. Попробуйте еще раз.', 'error');
                     resetLoginButton();
                 });
         }
@@ -869,7 +1029,7 @@
 
         // Загрузка контактов из Firestore
         function loadContactsFromFirestore() {
-            contactsList.innerHTML = '<div class="loading">Загрузка пользователей...</div>';
+            contactsList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Загрузка пользователей...</div>';
             
             db.collection('users')
                 .where('isOnline', '==', true)
@@ -893,7 +1053,7 @@
                     if (allContacts.length === 0) {
                         contactsList.innerHTML = `
                             <div class="no-contacts">
-                                <h3>Нет онлайн пользователей</h3>
+                                <h3><i class="fas fa-users-slash"></i> Нет онлайн пользователей</h3>
                                 <p>Откройте приложение в другом браузере чтобы увидеть контакты</p>
                             </div>
                         `;
@@ -902,6 +1062,12 @@
                     }
                 }, (error) => {
                     console.error('Ошибка загрузки контактов:', error);
+                    contactsList.innerHTML = `
+                        <div class="no-contacts">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Ошибка подключения</h3>
+                            <p>Проверьте интернет-соединение</p>
+                        </div>
+                    `;
                 });
         }
 
@@ -924,14 +1090,16 @@
             // Слушаем изменения в наших исходящих звонках
             db.collection('calls')
                 .where('from', '==', currentUser.uid)
-                .where('status', 'in', ['calling', 'accepted'])
+                .where('status', 'in', ['calling', 'accepted', 'declined'])
                 .onSnapshot((snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         const callData = change.doc.data();
-                        if (change.type === 'modified' && callData.status === 'accepted') {
-                            handleCallAccepted(callData, change.doc.id);
-                        } else if (change.type === 'modified' && callData.status === 'declined') {
-                            handleCallDeclined();
+                        if (change.type === 'modified') {
+                            if (callData.status === 'accepted') {
+                                handleCallAccepted(callData, change.doc.id);
+                            } else if (callData.status === 'declined') {
+                                handleCallDeclined(callData);
+                            }
                         }
                     });
                 });
@@ -952,14 +1120,16 @@
 
             // Уведомление в приложении
             notificationName.textContent = `Входящий звонок от ${callData.fromName}`;
-            notificationType.textContent = callData.type === 'video' ? '📹 Видеозвонок' : '📞 Голосовой звонок';
+            notificationType.innerHTML = callData.type === 'video' 
+                ? '<i class="fas fa-video"></i> Видеозвонок' 
+                : '<i class="fas fa-phone"></i> Голосовой звонок';
             
             if (callData.fromPhotoURL) {
                 notificationAvatar.style.backgroundImage = `url('${callData.fromPhotoURL}')`;
                 notificationAvatar.style.backgroundSize = 'cover';
-                notificationAvatar.textContent = '';
+                notificationAvatar.innerHTML = '';
             } else {
-                notificationAvatar.textContent = getInitials(callData.fromName);
+                notificationAvatar.innerHTML = `<i class="fas fa-user"></i>`;
                 notificationAvatar.style.backgroundImage = 'none';
             }
             
@@ -1011,6 +1181,7 @@
                     status: 'accepted',
                     answeredAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                showToast('Звонок принят', 'success');
             }
         }
 
@@ -1023,6 +1194,7 @@
                     status: 'declined',
                     endedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                showToast('Звонок отклонен', 'info');
                 incomingCallId = null;
             }
         }
@@ -1043,8 +1215,8 @@
         }
 
         // Обработка отклоненного звонка
-        function handleCallDeclined() {
-            alert('Звонок отклонен');
+        function handleCallDeclined(callData) {
+            showToast(`${callData.toEmail} отклонил(а) ваш звонок`, 'error');
             endCall();
         }
 
@@ -1087,12 +1259,12 @@
         function startQuickCall(type) {
             const targetEmail = callInput.value.trim();
             if (!targetEmail) {
-                alert('Введите email пользователя');
+                showToast('Введите email пользователя', 'error');
                 return;
             }
 
             if (targetEmail === currentUser.email) {
-                alert('Нельзя позвонить самому себе');
+                showToast('Нельзя позвонить самому себе', 'error');
                 return;
             }
 
@@ -1103,7 +1275,7 @@
                 .get()
                 .then((snapshot) => {
                     if (snapshot.empty) {
-                        alert('Пользователь не найден или не в сети');
+                        showToast('Пользователь не найден или не в сети', 'error');
                         return;
                     }
 
@@ -1129,22 +1301,23 @@
                             currentCallData = callData;
                             isCaller = true;
                             showCallWindow(targetUser, type);
+                            showToast(`Звонок ${targetUser.displayName}...`, 'info');
                         })
                         .catch((error) => {
                             console.error('Ошибка создания звонка:', error);
-                            alert('Ошибка при создании звонка');
+                            showToast('Ошибка при создании звонка', 'error');
                         });
                 })
                 .catch((error) => {
                     console.error('Ошибка поиска пользователя:', error);
-                    alert('Ошибка при поиске пользователя');
+                    showToast('Ошибка при поиске пользователя', 'error');
                 });
         }
 
         // Начать звонок контакту
         function startCallToContact(contact, type) {
             if (contact.email === currentUser.email) {
-                alert('Нельзя позвонить самому себе');
+                showToast('Нельзя позвонить самому себе', 'error');
                 return;
             }
 
@@ -1166,10 +1339,11 @@
                     currentCallData = callData;
                     isCaller = true;
                     showCallWindow(contact, type);
+                    showToast(`Звонок ${contact.name}...`, 'info');
                 })
                 .catch((error) => {
                     console.error('Ошибка создания звонка:', error);
-                    alert('Ошибка при создании звонка');
+                    showToast('Ошибка при создании звонка', 'error');
                 });
         }
 
@@ -1177,6 +1351,12 @@
         function showCallWindow(contact, type) {
             remoteUserName.textContent = contact.name;
             callWindow.classList.add('active');
+            
+            // Показываем соответствующие плейсхолдеры
+            localPlaceholder.style.display = 'flex';
+            remotePlaceholder.style.display = 'flex';
+            localVideo.style.display = 'none';
+            remoteVideo.style.display = 'none';
         }
 
         // WebRTC инициализация
@@ -1184,19 +1364,40 @@
             try {
                 isCaller = isInitiator;
 
-                // Получаем медиапоток
+                // Получаем медиапоток с обработкой ошибок
                 const constraints = {
                     audio: true,
                     video: isCaller || (currentCallData && currentCallData.type === 'video')
                 };
                 
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                localVideo.srcObject = localStream;
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    
+                    // Показываем локальное видео
+                    localVideo.srcObject = localStream;
+                    localVideo.style.display = 'block';
+                    localPlaceholder.style.display = 'none';
+                    
+                } catch (mediaError) {
+                    console.warn('Ошибка доступа к медиаустройствам:', mediaError);
+                    
+                    // Показываем сообщение об ошибке
+                    if (mediaError.name === 'NotAllowedError') {
+                        showToast('Доступ к камере/микрофону запрещен', 'error');
+                    } else if (mediaError.name === 'NotFoundError') {
+                        showToast('Камера/микрофон не найдены', 'error');
+                    } else {
+                        showToast('Ошибка доступа к камере/микрофону', 'error');
+                    }
+                    
+                    // Продолжаем без медиапотока
+                    localStream = new MediaStream();
+                }
 
                 // Создаем peer connection
                 peerConnection = new RTCPeerConnection(pcConfig);
 
-                // Добавляем локальные треки
+                // Добавляем локальные треки, если они есть
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
@@ -1205,6 +1406,8 @@
                 peerConnection.ontrack = (event) => {
                     remoteStream = event.streams[0];
                     remoteVideo.srcObject = remoteStream;
+                    remoteVideo.style.display = 'block';
+                    remotePlaceholder.style.display = 'none';
                 };
 
                 // Обработка ICE кандидатов
@@ -1222,7 +1425,9 @@
                 peerConnection.onconnectionstatechange = () => {
                     console.log('Connection state:', peerConnection.connectionState);
                     if (peerConnection.connectionState === 'connected') {
-                        console.log('WebRTC соединение установлено!');
+                        showToast('Соединение установлено!', 'success');
+                    } else if (peerConnection.connectionState === 'disconnected') {
+                        showToast('Соединение прервано', 'error');
                     }
                 };
 
@@ -1241,7 +1446,7 @@
 
             } catch (error) {
                 console.error('WebRTC ошибка:', error);
-                alert('Ошибка доступа к камере/микрофону');
+                showToast('Ошибка установления соединения', 'error');
                 endCall();
             }
         }
@@ -1311,32 +1516,69 @@
             
             isCaller = false;
             currentCallData = null;
+            isMuted = false;
+            isVideoOff = false;
+            
+            // Сбрасываем кнопки
+            const muteBtn = document.getElementById('mute-btn');
+            const videoBtn = document.getElementById('video-btn');
+            muteBtn.className = 'control-btn mute-btn';
+            muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            videoBtn.className = 'control-btn video-btn';
+            videoBtn.innerHTML = '<i class="fas fa-video"></i>';
         }
 
         // Управление звонком
         function toggleMute() {
             if (localStream) {
                 const audioTracks = localStream.getAudioTracks();
-                const isMuted = !audioTracks[0].enabled;
-                audioTracks.forEach(track => {
-                    track.enabled = !isMuted;
-                });
-                const muteBtn = document.getElementById('mute-btn');
-                muteBtn.textContent = isMuted ? '🔇' : '🎤';
-                muteBtn.style.background = isMuted ? '#EA4335' : '#4285F4';
+                if (audioTracks.length > 0) {
+                    isMuted = !audioTracks[0].enabled;
+                    audioTracks.forEach(track => {
+                        track.enabled = !isMuted;
+                    });
+                    const muteBtn = document.getElementById('mute-btn');
+                    if (isMuted) {
+                        muteBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                        muteBtn.classList.add('muted');
+                        showToast('Микрофон выключен', 'info');
+                    } else {
+                        muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                        muteBtn.classList.remove('muted');
+                        showToast('Микрофон включен', 'success');
+                    }
+                } else {
+                    showToast('Микрофон недоступен', 'error');
+                }
             }
         }
 
         function toggleVideo() {
             if (localStream) {
                 const videoTracks = localStream.getVideoTracks();
-                const isVideoOff = !videoTracks[0].enabled;
-                videoTracks.forEach(track => {
-                    track.enabled = !isVideoOff;
-                });
-                const videoBtn = document.getElementById('video-btn');
-                videoBtn.textContent = isVideoOff ? '📷' : '📹';
-                videoBtn.style.background = isVideoOff ? '#EA4335' : '#FBBC05';
+                if (videoTracks.length > 0) {
+                    isVideoOff = !videoTracks[0].enabled;
+                    videoTracks.forEach(track => {
+                        track.enabled = !isVideoOff;
+                    });
+                    const videoBtn = document.getElementById('video-btn');
+                    if (isVideoOff) {
+                        videoBtn.innerHTML = '<i class="fas fa-video-slash"></i>';
+                        videoBtn.classList.add('off');
+                        localVideo.style.display = 'none';
+                        localPlaceholder.style.display = 'flex';
+                        localPlaceholder.innerHTML = '<i class="fas fa-video-slash"></i><span>Камера выключена</span>';
+                        showToast('Камера выключена', 'info');
+                    } else {
+                        videoBtn.innerHTML = '<i class="fas fa-video"></i>';
+                        videoBtn.classList.remove('off');
+                        localVideo.style.display = 'block';
+                        localPlaceholder.style.display = 'none';
+                        showToast('Камера включена', 'success');
+                    }
+                } else {
+                    showToast('Камера недоступна', 'error');
+                }
             }
         }
 
@@ -1362,10 +1604,10 @@
                     </div>
                     <div class="contact-actions">
                         <button class="call-btn video-call" onclick="startCallToContact(${JSON.stringify(contact).replace(/"/g, '&quot;')}, 'video')">
-                            📹 Видео
+                            <i class="fas fa-video"></i> Видео
                         </button>
                         <button class="call-btn voice-call" onclick="startCallToContact(${JSON.stringify(contact).replace(/"/g, '&quot;')}, 'audio')">
-                            📞 Голос
+                            <i class="fas fa-phone"></i> Голос
                         </button>
                     </div>
                     <div class="contact-status status-${contact.status}">
@@ -1377,10 +1619,10 @@
 
         function getStatusText(status) {
             switch(status) {
-                case 'online': return '🟢 В сети';
-                case 'away': return '🟡 Отошел';
-                case 'offline': return '⚫ Не в сети';
-                default: return '⚫ Не в сети';
+                case 'online': return '<i class="fas fa-circle"></i> В сети';
+                case 'away': return '<i class="fas fa-clock"></i> Отошел';
+                case 'offline': return '<i class="fas fa-circle"></i> Не в сети';
+                default: return '<i class="fas fa-circle"></i> Не в сети';
             }
         }
 
@@ -1420,6 +1662,11 @@
         // Инициализация приложения
         function init() {
             console.log('Video Call Real Firebase приложение инициализировано');
+            
+            // Запрос разрешения на уведомления
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
         }
 
         init();
