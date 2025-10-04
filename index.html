@@ -289,29 +289,26 @@
             color: #999;
         }
 
-        .permission-request {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
+        .user-info {
+            background: #f8f9fa;
             border-radius: 12px;
             padding: 20px;
             margin: 20px 30px;
             text-align: center;
         }
 
-        .permission-btn {
-            background: #4285F4;
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-top: 10px;
-            transition: background 0.3s ease;
-        }
-
-        .permission-btn:hover {
-            background: #3367d6;
+            font-weight: 600;
+            font-size: 24px;
+            margin: 0 auto 15px;
         }
 
         /* Адаптивность */
@@ -408,10 +405,10 @@
                         </div>
                     </div>
                     
-                    <div id="permission-section" class="permission-request" style="display: none;">
-                        <h3>Доступ к контактам</h3>
-                        <p>Для отображения ваших контактов необходимо предоставить доступ</p>
-                        <button id="request-permission-btn" class="permission-btn">Разрешить доступ к контактам</button>
+                    <div id="user-info-section" class="user-info" style="display: none;">
+                        <div class="user-avatar" id="user-avatar">U</div>
+                        <h3 id="user-display-name">Пользователь</h3>
+                        <p>Добро пожаловать в Video Call!</p>
                     </div>
                     
                     <div class="contacts-list" id="contacts-list">
@@ -447,36 +444,31 @@
         const userEmail = document.getElementById('user-email');
         const contactsList = document.getElementById('contacts-list');
         const searchContacts = document.getElementById('search-contacts');
-        const permissionSection = document.getElementById('permission-section');
-        const requestPermissionBtn = document.getElementById('request-permission-btn');
+        const userInfoSection = document.getElementById('user-info-section');
+        const userAvatar = document.getElementById('user-avatar');
+        const userDisplayName = document.getElementById('user-display-name');
 
         // Переменные
         let allContacts = [];
-        let accessToken = null;
 
         // Слушатели событий
         googleSigninBtn.addEventListener('click', signInWithGoogle);
         logoutBtn.addEventListener('click', handleLogout);
         searchContacts.addEventListener('input', filterContacts);
-        requestPermissionBtn.addEventListener('click', requestContactsPermission);
 
-        // Авторизация через Google
+        // Авторизация через Google (БЕЗ запроса контактов)
         function signInWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             
-            // Запрашиваем дополнительные разрешения
-            provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
-            provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
-            provider.addScope('https://www.googleapis.com/auth/userinfo.email');
+            // ТОЛЬКО базовые разрешения - без контактов!
+            provider.addScope('profile');
+            provider.addScope('email');
             
             googleSigninBtn.disabled = true;
             googleSigninBtn.innerHTML = '🔄 Авторизация...';
             
             auth.signInWithPopup(provider)
                 .then((result) => {
-                    // Успешная авторизация
-                    const credential = result.credential;
-                    accessToken = credential.accessToken;
                     console.log('Успешный вход:', result.user);
                     analytics.logEvent('login', { method: 'Google' });
                 })
@@ -491,7 +483,6 @@
         function handleLogout() {
             auth.signOut()
                 .then(() => {
-                    accessToken = null;
                     allContacts = [];
                     resetLoginButton();
                 })
@@ -505,93 +496,33 @@
             if (user) {
                 // Пользователь авторизован
                 showMainPage(user);
-                checkContactsPermission();
+                loadDemoContacts(); // Загружаем демо-контакты вместо реальных
+                showUserInfo(user);
             } else {
                 // Пользователь не авторизован
                 showLoginPage();
             }
         });
 
-        // Проверка разрешения на доступ к контактам
-        function checkContactsPermission() {
-            if (!accessToken) {
-                showPermissionRequest();
-                return;
-            }
+        // Показать информацию о пользователе
+        function showUserInfo(user) {
+            userInfoSection.style.display = 'block';
+            userDisplayName.textContent = user.displayName || 'Пользователь';
+            userEmail.textContent = user.email;
             
-            // Проверяем, есть ли у нас доступ к контактам
-            fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,photos&pageSize=50', {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            })
-            .then(response => {
-                if (response.status === 200) {
-                    return response.json();
-                } else if (response.status === 403) {
-                    showPermissionRequest();
-                    throw new Error('Нет доступа к контактам');
-                } else {
-                    throw new Error('Ошибка при загрузке контактов');
-                }
-            })
-            .then(data => {
-                loadGoogleContacts(data.connections || []);
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                // Показываем демо-контакты, если нет доступа к реальным
-                loadDemoContacts();
-            });
-        }
-
-        // Запрос разрешения на доступ к контактам
-        function requestContactsPermission() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
-            
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    const credential = result.credential;
-                    accessToken = credential.accessToken;
-                    checkContactsPermission();
-                })
-                .catch((error) => {
-                    console.error('Ошибка при запросе разрешений:', error);
-                    loadDemoContacts();
-                });
-        }
-
-        // Загрузка контактов из Google People API
-        function loadGoogleContacts(connections) {
-            allContacts = connections
-                .filter(contact => 
-                    contact.names && contact.names[0] && 
-                    contact.emailAddresses && contact.emailAddresses[0]
-                )
-                .map(contact => {
-                    const name = contact.names[0].displayName;
-                    const email = contact.emailAddresses[0].value;
-                    const photo = contact.photos && contact.photos[0] ? contact.photos[0].url : null;
-                    
-                    return {
-                        name: name,
-                        email: email,
-                        photo: photo,
-                        initials: getInitials(name),
-                        isAuthorized: Math.random() > 0.3 // Случайный статус для демонстрации
-                    };
-                });
-            
-            if (allContacts.length === 0) {
-                loadDemoContacts();
+            // Аватар пользователя
+            if (user.photoURL) {
+                userAvatar.style.backgroundImage = `url('${user.photoURL}')`;
+                userAvatar.style.backgroundSize = 'cover';
+                userAvatar.textContent = '';
             } else {
-                displayContacts(allContacts);
-                permissionSection.style.display = 'none';
+                const initials = getInitials(user.displayName || user.email);
+                userAvatar.textContent = initials;
+                userAvatar.style.backgroundImage = 'none';
             }
         }
 
-        // Загрузка демо-контактов (если нет доступа к реальным)
+        // Загрузка демо-контактов (без доступа к реальным)
         function loadDemoContacts() {
             allContacts = [
                 {
@@ -634,6 +565,20 @@
                     email: 'anna.volkova@gmail.com',
                     photo: null,
                     initials: 'АВ',
+                    isAuthorized: true
+                },
+                {
+                    name: 'Михаил Орлов',
+                    email: 'mikhail.orlov@startup.io',
+                    photo: null,
+                    initials: 'МО',
+                    isAuthorized: false
+                },
+                {
+                    name: 'Ольга Новикова',
+                    email: 'olga.novikova@university.edu',
+                    photo: null,
+                    initials: 'ОН',
                     isAuthorized: true
                 }
             ];
@@ -698,13 +643,6 @@
         function showMainPage(user) {
             loginPage.classList.remove('active');
             mainPage.classList.add('active');
-            userEmail.textContent = user.email;
-        }
-
-        // Показать запрос разрешений
-        function showPermissionRequest() {
-            permissionSection.style.display = 'block';
-            contactsList.innerHTML = '<div class="loading">Ожидание разрешения...</div>';
         }
 
         // Сброс кнопки входа
