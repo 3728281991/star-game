@@ -532,6 +532,13 @@
             align-items: center;
             gap: 15px;
             max-width: 400px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         .call-notification.active {
@@ -559,6 +566,33 @@
         .notification-actions {
             display: flex;
             gap: 10px;
+        }
+
+        /* Push уведомление */
+        .push-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4285F4;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1002;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .push-notification.active {
+            display: flex;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from { top: -100px; }
+            to { top: 20px; }
         }
 
         /* Адаптивность */
@@ -606,6 +640,12 @@
             .video-container {
                 grid-template-columns: 1fr;
             }
+
+            .call-notification {
+                left: 20px;
+                right: 20px;
+                max-width: none;
+            }
         }
     </style>
     
@@ -613,6 +653,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 </head>
 <body>
     <div id="app">
@@ -690,7 +731,7 @@
                     <div class="call-container">
                         <div class="call-panel">
                             <h3>Быстрый звонок</h3>
-                            <input type="text" id="call-input" class="call-input" placeholder="Введите email или ID пользователя">
+                            <input type="text" id="call-input" class="call-input" placeholder="Введите email пользователя">
                             <button class="quick-call-btn video-call" onclick="startQuickCall('video')">
                                 📹 Начать видеозвонок
                             </button>
@@ -698,11 +739,12 @@
                                 📞 Начать голосовой звонок
                             </button>
                             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                                <h4>Ваш ID для звонков:</h4>
-                                <p id="my-user-id" style="font-family: monospace; background: white; padding: 10px; border-radius: 5px; word-break: break-all;"></p>
-                                <button onclick="copyMyId()" style="margin-top: 10px; padding: 8px 15px; background: #4285F4; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                                    📋 Скопировать ID
-                                </button>
+                                <h4>Инструкция:</h4>
+                                <p style="font-size: 14px; color: #666;">
+                                    1. Откройте приложение в двух разных браузерах<br>
+                                    2. Войдите под разными Google аккаунтами<br>
+                                    3. Звоните по email из списка контактов
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -741,6 +783,12 @@
                 <button class="control-btn decline-call" onclick="declineIncomingCall()">📵</button>
             </div>
         </div>
+
+        <!-- Push уведомление -->
+        <div id="push-notification" class="push-notification">
+            <span>🔔</span>
+            <span id="push-message">Новое уведомление</span>
+        </div>
     </div>
 
     <script>
@@ -759,6 +807,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const messaging = firebase.messaging();
 
         // WebRTC переменные
         let localStream = null;
@@ -787,7 +836,6 @@
         const userAvatar = document.getElementById('user-avatar');
         const userDisplayName = document.getElementById('user-display-name');
         const userId = document.getElementById('user-id');
-        const myUserId = document.getElementById('my-user-id');
         const callWindow = document.getElementById('call-window');
         const localVideo = document.getElementById('local-video');
         const remoteVideo = document.getElementById('remote-video');
@@ -797,11 +845,14 @@
         const notificationName = document.getElementById('notification-name');
         const notificationType = document.getElementById('notification-type');
         const callInput = document.getElementById('call-input');
+        const pushNotification = document.getElementById('push-notification');
+        const pushMessage = document.getElementById('push-message');
 
         // Переменные
         let allContacts = [];
         let currentUser = null;
         let currentCallDoc = null;
+        let incomingCallData = null;
 
         // Слушатели событий
         googleSigninBtn.addEventListener('click', signInWithGoogle);
@@ -822,12 +873,34 @@
                     console.log('Успешный вход:', result.user);
                     currentUser = result.user;
                     saveUserToFirestore(result.user);
+                    requestNotificationPermission();
                 })
                 .catch((error) => {
                     console.error('Ошибка авторизации:', error);
                     alert('Ошибка при авторизации. Попробуйте еще раз.');
                     resetLoginButton();
                 });
+        }
+
+        // Запрос разрешения на уведомления
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Разрешение на уведомления получено');
+                        showPushNotification('Уведомления включены ✅');
+                    }
+                });
+            }
+        }
+
+        // Показать push уведомление
+        function showPushNotification(message) {
+            pushMessage.textContent = message;
+            pushNotification.classList.add('active');
+            setTimeout(() => {
+                pushNotification.classList.remove('active');
+            }, 3000);
         }
 
         // Сохранение пользователя в Firestore
@@ -839,7 +912,8 @@
                 photoURL: user.photoURL,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
                 status: 'online',
-                userAgent: navigator.userAgent
+                userAgent: navigator.userAgent,
+                isOnline: true
             };
             
             db.collection('users').doc(user.uid).set(userData, { merge: true });
@@ -850,6 +924,7 @@
             if (currentUser) {
                 db.collection('users').doc(currentUser.uid).update({
                     status: 'offline',
+                    isOnline: false,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
@@ -878,33 +953,62 @@
                 loadContactsFromFirestore();
                 showUserInfo(user);
                 listenForIncomingCalls();
+                setupPageVisibilityListener();
             } else {
                 showLoginPage();
             }
         });
+
+        // Слушатель видимости страницы
+        function setupPageVisibilityListener() {
+            document.addEventListener('visibilitychange', () => {
+                if (currentUser && document.hidden) {
+                    // Страница скрыта - пользователь отошел
+                    db.collection('users').doc(currentUser.uid).update({
+                        status: 'away'
+                    });
+                } else if (currentUser && !document.hidden) {
+                    // Страница активна - пользователь онлайн
+                    db.collection('users').doc(currentUser.uid).update({
+                        status: 'online'
+                    });
+                }
+            });
+        }
 
         // Загрузка контактов из Firestore
         function loadContactsFromFirestore() {
             contactsList.innerHTML = '<div class="loading">Загрузка контактов...</div>';
             
             db.collection('users')
-                .where('email', '!=', currentUser.email)
+                .where('isOnline', '==', true)
                 .onSnapshot((snapshot) => {
                     allContacts = [];
                     snapshot.forEach((doc) => {
                         const contact = doc.data();
-                        allContacts.push({
-                            id: doc.id,
-                            name: contact.displayName || contact.email,
-                            email: contact.email,
-                            photoURL: contact.photoURL,
-                            status: contact.status || 'offline',
-                            lastSeen: contact.lastSeen,
-                            initials: getInitials(contact.displayName || contact.email)
-                        });
+                        if (contact.uid !== currentUser.uid) {
+                            allContacts.push({
+                                id: doc.id,
+                                name: contact.displayName || contact.email,
+                                email: contact.email,
+                                photoURL: contact.photoURL,
+                                status: contact.status || 'offline',
+                                lastSeen: contact.lastSeen,
+                                initials: getInitials(contact.displayName || contact.email)
+                            });
+                        }
                     });
                     
-                    displayContacts(allContacts);
+                    if (allContacts.length === 0) {
+                        contactsList.innerHTML = `
+                            <div class="no-contacts">
+                                <h3>Нет онлайн пользователей</h3>
+                                <p>Откройте приложение в другом браузере чтобы увидеть контакты</p>
+                            </div>
+                        `;
+                    } else {
+                        displayContacts(allContacts);
+                    }
                 }, (error) => {
                     console.error('Ошибка загрузки контактов:', error);
                 });
@@ -913,73 +1017,93 @@
         // Прослушивание входящих звонков
         function listenForIncomingCalls() {
             db.collection('calls')
-                .where('to', '==', currentUser.uid)
+                .where('toEmail', '==', currentUser.email)
                 .where('status', '==', 'calling')
                 .onSnapshot((snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
                             const callData = change.doc.data();
-                            showIncomingCall(callData, change.doc.id);
-                        }
-                    });
-                });
-
-            db.collection('calls')
-                .where('from', '==', currentUser.uid)
-                .where('status', 'in', ['calling', 'accepted'])
-                .onSnapshot((snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        const callData = change.doc.data();
-                        if (change.type === 'modified' && callData.status === 'accepted') {
-                            handleCallAccepted(callData, change.doc.id);
+                            incomingCallData = { data: callData, docId: change.doc.id };
+                            showIncomingCall(callData);
                         }
                     });
                 });
         }
 
         // Показать входящий звонок
-        function showIncomingCall(callData, callId) {
-            currentCallDoc = db.collection('calls').doc(callId);
+        function showIncomingCall(callData) {
+            // Показываем браузерное уведомление
+            if (Notification.permission === 'granted') {
+                new Notification('Входящий звонок 📞', {
+                    body: `${callData.fromName} звонит вам по ${callData.type === 'video' ? 'видео' : 'голосу'}`,
+                    icon: callData.fromPhotoURL || '/icon.png',
+                    tag: 'call'
+                });
+            }
+
+            // Показываем уведомление в приложении
+            notificationName.textContent = `Входящий звонок от ${callData.fromName}`;
+            notificationType.textContent = callData.type === 'video' ? '📹 Видеозвонок' : '📞 Голосовой звонок';
             
-            // Получаем информацию о зввонившем
-            db.collection('users').doc(callData.from).get().then((doc) => {
-                if (doc.exists) {
-                    const caller = doc.data();
-                    
-                    notificationName.textContent = `Входящий звонок от ${caller.displayName}`;
-                    notificationType.textContent = callData.type === 'video' ? '📹 Видеозвонок' : '📞 Голосовой звонок';
-                    
-                    if (caller.photoURL) {
-                        notificationAvatar.style.backgroundImage = `url('${caller.photoURL}')`;
-                        notificationAvatar.style.backgroundSize = 'cover';
-                        notificationAvatar.textContent = '';
-                    } else {
-                        notificationAvatar.textContent = getInitials(caller.displayName || caller.email);
-                        notificationAvatar.style.backgroundImage = 'none';
-                    }
-                    
-                    callNotification.classList.add('active');
-                    
-                    // Автоматически скрыть через 30 секунд
-                    setTimeout(() => {
-                        if (callNotification.classList.contains('active')) {
-                            declineIncomingCall();
-                        }
-                    }, 30000);
+            if (callData.fromPhotoURL) {
+                notificationAvatar.style.backgroundImage = `url('${callData.fromPhotoURL}')`;
+                notificationAvatar.style.backgroundSize = 'cover';
+                notificationAvatar.textContent = '';
+            } else {
+                notificationAvatar.textContent = getInitials(callData.fromName);
+                notificationAvatar.style.backgroundImage = 'none';
+            }
+            
+            callNotification.classList.add('active');
+            showPushNotification(`📞 Входящий звонок от ${callData.fromName}`);
+
+            // Воспроизводим звук звонка
+            playRingtone();
+
+            // Автоматически скрыть через 45 секунд
+            setTimeout(() => {
+                if (callNotification.classList.contains('active')) {
+                    declineIncomingCall();
                 }
-            });
+            }, 45000);
+        }
+
+        // Воспроизведение звонка
+        function playRingtone() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.5);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime + 1);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 1);
+            
+            // Повторяем каждые 2 секунды
+            if (callNotification.classList.contains('active')) {
+                setTimeout(playRingtone, 2000);
+            }
         }
 
         // Принять входящий звонок
         function acceptIncomingCall() {
             callNotification.classList.remove('active');
             
-            if (currentCallDoc) {
-                currentCallDoc.update({
+            if (incomingCallData) {
+                db.collection('calls').doc(incomingCallData.docId).update({
                     status: 'accepted',
                     answeredAt: firebase.firestore.FieldValue.serverTimestamp()
                 }).then(() => {
                     startWebRTC(false);
+                    showPushNotification('Звонок принят ✅');
                 });
             }
         }
@@ -988,36 +1112,37 @@
         function declineIncomingCall() {
             callNotification.classList.remove('active');
             
-            if (currentCallDoc) {
-                currentCallDoc.update({
+            if (incomingCallData) {
+                db.collection('calls').doc(incomingCallData.docId).update({
                     status: 'declined',
                     endedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                currentCallDoc = null;
+                incomingCallData = null;
+                showPushNotification('Звонок отклонен ❌');
             }
-        }
-
-        // Обработка принятого звонка
-        function handleCallAccepted(callData, callId) {
-            currentCallDoc = db.collection('calls').doc(callId);
-            startWebRTC(true);
         }
 
         // Начать быстрый звонок
         function startQuickCall(type) {
-            const target = callInput.value.trim();
-            if (!target) {
-                alert('Введите email или ID пользователя');
+            const targetEmail = callInput.value.trim();
+            if (!targetEmail) {
+                alert('Введите email пользователя');
                 return;
             }
 
-            // Ищем пользователя по email или ID
+            if (targetEmail === currentUser.email) {
+                alert('Нельзя позвонить самому себе');
+                return;
+            }
+
+            // Ищем пользователя по email
             db.collection('users')
-                .where(target.includes('@') ? 'email' : 'uid', '==', target)
+                .where('email', '==', targetEmail)
+                .where('isOnline', '==', true)
                 .get()
                 .then((snapshot) => {
                     if (snapshot.empty) {
-                        alert('Пользователь не найден');
+                        showPushNotification('Пользователь не найден или не в сети');
                         return;
                     }
 
@@ -1028,7 +1153,10 @@
                     const callData = {
                         from: currentUser.uid,
                         fromName: currentUser.displayName,
+                        fromEmail: currentUser.email,
+                        fromPhotoURL: currentUser.photoURL,
                         to: targetUser.uid,
+                        toEmail: targetUser.email,
                         type: type,
                         status: 'calling',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1039,24 +1167,33 @@
                             currentCallDoc = docRef;
                             isCaller = true;
                             showCallWindow(targetUser, type);
+                            showPushNotification(`Звонок пользователю ${targetUser.email}...`);
                         })
                         .catch((error) => {
                             console.error('Ошибка создания звонка:', error);
-                            alert('Ошибка при создании звонка');
+                            showPushNotification('Ошибка при создании звонка');
                         });
                 })
                 .catch((error) => {
                     console.error('Ошибка поиска пользователя:', error);
-                    alert('Ошибка при поиске пользователя');
+                    showPushNotification('Ошибка при поиске пользователя');
                 });
         }
 
         // Начать звонок контакту
         function startCallToContact(contact, type) {
+            if (contact.email === currentUser.email) {
+                alert('Нельзя позвонить самому себе');
+                return;
+            }
+
             const callData = {
                 from: currentUser.uid,
                 fromName: currentUser.displayName,
+                fromEmail: currentUser.email,
+                fromPhotoURL: currentUser.photoURL,
                 to: contact.id,
+                toEmail: contact.email,
                 type: type,
                 status: 'calling',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1067,10 +1204,11 @@
                     currentCallDoc = docRef;
                     isCaller = true;
                     showCallWindow(contact, type);
+                    showPushNotification(`Звонок пользователю ${contact.email}...`);
                 })
                 .catch((error) => {
                     console.error('Ошибка создания звонка:', error);
-                    alert('Ошибка при создании звонка');
+                    showPushNotification('Ошибка при создании звонка');
                 });
         }
 
@@ -1091,7 +1229,16 @@
                 currentCallDoc = null;
             }
             
+            if (incomingCallData) {
+                db.collection('calls').doc(incomingCallData.docId).update({
+                    status: 'ended',
+                    endedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                incomingCallData = null;
+            }
+            
             callWindow.classList.remove('active');
+            callNotification.classList.remove('active');
             
             // Останавливаем потоки
             if (localStream) {
@@ -1106,17 +1253,20 @@
             
             localVideo.srcObject = null;
             remoteVideo.srcObject = null;
+
+            showPushNotification('Звонок завершен');
         }
 
         // WebRTC инициализация
         async function startWebRTC(isCaller) {
             try {
                 // Получаем медиапоток
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true
-                });
+                const constraints = {
+                    audio: true,
+                    video: isCaller || incomingCallData?.data.type === 'video'
+                };
                 
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = localStream;
 
                 // Создаем peer connection
@@ -1131,28 +1281,25 @@
                 peerConnection.ontrack = (event) => {
                     remoteStream = event.streams[0];
                     remoteVideo.srcObject = remoteStream;
+                    showPushNotification('Соединение установлено ✅');
                 };
 
                 // Обработка ICE кандидатов
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate && currentCallDoc) {
                         currentCallDoc.update({
-                            iceCandidates: firebase.firestore.FieldValue.arrayUnion(event.candidate.toJSON())
+                            iceCandidate: event.candidate.toJSON()
                         });
                     }
                 };
 
-                // Слушаем ICE кандидатов от другого пользователя
-                if (currentCallDoc) {
-                    currentCallDoc.onSnapshot((doc) => {
-                        const data = doc.data();
-                        if (data.iceCandidates) {
-                            data.iceCandidates.forEach(candidate => {
-                                peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                            });
-                        }
-                    });
-                }
+                // Обработка изменения состояния соединения
+                peerConnection.onconnectionstatechange = () => {
+                    console.log('Connection state:', peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'connected') {
+                        showPushNotification('Соединение установлено ✅');
+                    }
+                };
 
                 if (isCaller) {
                     // Создаем offer
@@ -1160,30 +1307,48 @@
                     await peerConnection.setLocalDescription(offer);
                     
                     if (currentCallDoc) {
-                        currentCallDoc.update({
+                        await currentCallDoc.update({
                             offer: offer
                         });
                     }
-                } else {
-                    // Ждем offer и создаем answer
+
+                    // Слушаем answer
                     currentCallDoc.onSnapshot((doc) => {
                         const data = doc.data();
-                        if (data.offer && !peerConnection.remoteDescription) {
-                            peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
-                                .then(() => peerConnection.createAnswer())
-                                .then(answer => {
-                                    peerConnection.setLocalDescription(answer);
-                                    currentCallDoc.update({
-                                        answer: answer
-                                    });
-                                });
+                        if (data.answer && !peerConnection.remoteDescription) {
+                            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        }
+                        if (data.iceCandidate) {
+                            peerConnection.addIceCandidate(new RTCIceCandidate(data.iceCandidate));
                         }
                     });
+
+                } else {
+                    // Слушаем offer и создаем answer
+                    if (incomingCallData) {
+                        const callDoc = db.collection('calls').doc(incomingCallData.docId);
+                        callDoc.onSnapshot((doc) => {
+                            const data = doc.data();
+                            if (data.offer && !peerConnection.remoteDescription) {
+                                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                                    .then(() => peerConnection.createAnswer())
+                                    .then(answer => {
+                                        peerConnection.setLocalDescription(answer);
+                                        callDoc.update({
+                                            answer: answer
+                                        });
+                                    });
+                            }
+                            if (data.iceCandidate) {
+                                peerConnection.addIceCandidate(new RTCIceCandidate(data.iceCandidate));
+                            }
+                        });
+                    }
                 }
 
             } catch (error) {
                 console.error('WebRTC ошибка:', error);
-                alert('Ошибка доступа к камере/микрофону');
+                showPushNotification('Ошибка доступа к камере/микрофону');
                 endCall();
             }
         }
@@ -1192,22 +1357,26 @@
         function toggleMute() {
             if (localStream) {
                 const audioTracks = localStream.getAudioTracks();
+                const isMuted = !audioTracks[0].enabled;
                 audioTracks.forEach(track => {
-                    track.enabled = !track.enabled;
+                    track.enabled = !isMuted;
                 });
                 const muteBtn = document.getElementById('mute-btn');
-                muteBtn.textContent = track.enabled ? '🎤' : '🔇';
+                muteBtn.textContent = isMuted ? '🔇' : '🎤';
+                muteBtn.style.background = isMuted ? '#EA4335' : '#4285F4';
             }
         }
 
         function toggleVideo() {
             if (localStream) {
                 const videoTracks = localStream.getVideoTracks();
+                const isVideoOff = !videoTracks[0].enabled;
                 videoTracks.forEach(track => {
-                    track.enabled = !track.enabled;
+                    track.enabled = !isVideoOff;
                 });
                 const videoBtn = document.getElementById('video-btn');
-                videoBtn.textContent = track.enabled ? '📹' : '📷';
+                videoBtn.textContent = isVideoOff ? '📷' : '📹';
+                videoBtn.style.background = isVideoOff ? '#EA4335' : '#FBBC05';
             }
         }
 
@@ -1220,18 +1389,12 @@
                 .substring(0, 2);
         }
 
-        function copyMyId() {
-            navigator.clipboard.writeText(currentUser.uid);
-            alert('ID скопирован в буфер обмена!');
-        }
-
         // Показать информацию о пользователе
         function showUserInfo(user) {
             userInfoSection.style.display = 'block';
             userDisplayName.textContent = user.displayName || 'Пользователь';
             userEmail.textContent = user.email;
             userId.textContent = user.uid;
-            myUserId.textContent = user.uid;
             
             if (user.photoURL) {
                 userAvatar.style.backgroundImage = `url('${user.photoURL}')`;
@@ -1246,16 +1409,6 @@
 
         // Отображение контактов
         function displayContacts(contacts) {
-            if (contacts.length === 0) {
-                contactsList.innerHTML = `
-                    <div class="no-contacts">
-                        <h3>Контакты не найдены</h3>
-                        <p>Другие пользователи появятся здесь когда войдут в систему</p>
-                    </div>
-                `;
-                return;
-            }
-
             contactsList.innerHTML = contacts.map(contact => `
                 <div class="contact-item">
                     <div class="contact-avatar" style="${contact.photoURL ? `background-image: url('${contact.photoURL}'); background-size: cover;` : ''}">
