@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Call</title>
+    <title>Video Call - Real Time</title>
     <style>
         * {
             margin: 0;
@@ -170,11 +170,25 @@
             margin: 0 auto;
         }
 
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
         .contacts-container {
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+        }
+
+        .call-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            height: fit-content;
         }
 
         .contacts-header {
@@ -362,63 +376,93 @@
             margin: 0 auto 15px;
         }
 
-        /* Модальное окно звонка */
-        .call-modal {
-            display: none;
+        /* Панель звонков */
+        .call-panel h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .call-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .quick-call-btn {
+            width: 100%;
+            padding: 15px;
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .quick-call-btn:hover {
+            background: #3367d6;
+        }
+
+        /* Окно звонка */
+        .call-window {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
-            align-items: center;
-            justify-content: center;
+            display: none;
+            flex-direction: column;
         }
 
-        .call-modal.active {
+        .call-window.active {
             display: flex;
         }
 
-        .call-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        .video-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 20px;
         }
 
-        .call-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .video-wrapper {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
             color: white;
-            font-weight: 600;
-            font-size: 32px;
-            margin: 0 auto 20px;
-        }
-
-        .call-info h3 {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .call-info p {
-            color: #666;
-            margin-bottom: 30px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
         }
 
         .call-controls {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 20px;
         }
 
         .control-btn {
@@ -454,8 +498,75 @@
             transform: scale(1.1);
         }
 
+        .mute-btn {
+            background: #4285F4;
+            color: white;
+        }
+
+        .mute-btn:hover {
+            background: #3367d6;
+            transform: scale(1.1);
+        }
+
+        .video-btn {
+            background: #FBBC05;
+            color: white;
+        }
+
+        .video-btn:hover {
+            background: #e6a800;
+            transform: scale(1.1);
+        }
+
+        /* Уведомление о звонке */
+        .call-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            gap: 15px;
+            max-width: 400px;
+        }
+
+        .call-notification.active {
+            display: flex;
+        }
+
+        .notification-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .notification-info {
+            flex: 1;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+        }
+
         /* Адаптивность */
         @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
             .header-content {
                 padding: 15px 20px;
                 flex-direction: column;
@@ -491,30 +602,9 @@
             .contact-status {
                 margin-left: auto;
             }
-        }
 
-        @media (max-width: 480px) {
-            .contact-item {
-                flex-direction: column;
-                align-items: flex-start;
-                text-align: left;
-            }
-
-            .contact-avatar {
-                margin-bottom: 10px;
-            }
-
-            .contact-actions {
-                margin-left: 0;
-                margin-top: 15px;
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .contact-status {
-                margin-left: 0;
-                margin-top: 10px;
-                align-self: flex-start;
+            .video-container {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -532,9 +622,9 @@
                 <div class="login-card">
                     <div class="logo">
                         <div class="logo-icon">📞</div>
-                        <h1>Video Call</h1>
+                        <h1>Video Call - Real Time</h1>
                     </div>
-                    <p class="login-subtitle">Безопасные видеозвонки в один клик</p>
+                    <p class="login-subtitle">Реальные видеозвонки в реальном времени</p>
                     <button id="google-signin-btn" class="google-btn">
                         <svg class="google-icon" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -551,23 +641,23 @@
                         </div>
                         <div class="feature">
                             <span>⚡</span>
-                            <span>Быстро</span>
+                            <span>Реальное время</span>
                         </div>
                         <div class="feature">
                             <span>🎯</span>
-                            <span>Просто</span>
+                            <span>WebRTC</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Главная страница с контактами -->
+        <!-- Главная страница -->
         <div id="main-page" class="page">
             <header class="header">
                 <div class="header-content">
                     <div class="header-left">
-                        <h1>Video Call</h1>
+                        <h1>Video Call - Real Time</h1>
                         <span id="user-email" class="user-email"></span>
                     </div>
                     <div class="header-right">
@@ -577,39 +667,78 @@
             </header>
 
             <main class="main-content">
-                <div class="contacts-container">
-                    <div class="contacts-header">
-                        <h2>Контакты</h2>
-                        <div class="search-box">
-                            <input type="text" id="search-contacts" placeholder="Поиск контактов...">
+                <div class="dashboard">
+                    <div class="contacts-container">
+                        <div class="contacts-header">
+                            <h2>Онлайн контакты</h2>
+                            <div class="search-box">
+                                <input type="text" id="search-contacts" placeholder="Поиск контактов...">
+                            </div>
+                        </div>
+                        
+                        <div id="user-info-section" class="user-info" style="display: none;">
+                            <div class="user-avatar" id="user-avatar">U</div>
+                            <h3 id="user-display-name">Пользователь</h3>
+                            <p>Ваш ID: <span id="user-id"></span></p>
+                        </div>
+                        
+                        <div class="contacts-list" id="contacts-list">
+                            <div class="loading">Загрузка контактов...</div>
                         </div>
                     </div>
-                    
-                    <div id="user-info-section" class="user-info" style="display: none;">
-                        <div class="user-avatar" id="user-avatar">U</div>
-                        <h3 id="user-display-name">Пользователь</h3>
-                        <p>Добро пожаловать в Video Call!</p>
-                    </div>
-                    
-                    <div class="contacts-list" id="contacts-list">
-                        <div class="loading">Загрузка контактов...</div>
+
+                    <div class="call-container">
+                        <div class="call-panel">
+                            <h3>Быстрый звонок</h3>
+                            <input type="text" id="call-input" class="call-input" placeholder="Введите email или ID пользователя">
+                            <button class="quick-call-btn video-call" onclick="startQuickCall('video')">
+                                📹 Начать видеозвонок
+                            </button>
+                            <button class="quick-call-btn voice-call" onclick="startQuickCall('audio')">
+                                📞 Начать голосовой звонок
+                            </button>
+                            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                                <h4>Ваш ID для звонков:</h4>
+                                <p id="my-user-id" style="font-family: monospace; background: white; padding: 10px; border-radius: 5px; word-break: break-all;"></p>
+                                <button onclick="copyMyId()" style="margin-top: 10px; padding: 8px 15px; background: #4285F4; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    📋 Скопировать ID
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
         </div>
 
-        <!-- Модальное окно звонка -->
-        <div id="call-modal" class="call-modal">
-            <div class="call-container">
-                <div class="call-avatar" id="call-avatar">U</div>
-                <div class="call-info">
-                    <h3 id="call-contact-name">Контакты</h3>
-                    <p id="call-type">Входящий видеозвонок...</p>
+        <!-- Окно звонка -->
+        <div id="call-window" class="call-window">
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <video id="local-video" autoplay muted></video>
+                    <div class="video-label">Вы</div>
                 </div>
-                <div class="call-controls">
-                    <button class="control-btn accept-call" id="accept-call">📞</button>
-                    <button class="control-btn decline-call" id="decline-call">📵</button>
+                <div class="video-wrapper">
+                    <video id="remote-video" autoplay></video>
+                    <div class="video-label" id="remote-user-name">Удаленный пользователь</div>
                 </div>
+            </div>
+            <div class="call-controls">
+                <button class="control-btn mute-btn" id="mute-btn" onclick="toggleMute()">🎤</button>
+                <button class="control-btn video-btn" id="video-btn" onclick="toggleVideo()">📹</button>
+                <button class="control-btn decline-call" onclick="endCall()">📵</button>
+            </div>
+        </div>
+
+        <!-- Уведомление о входящем звонке -->
+        <div id="call-notification" class="call-notification">
+            <div class="notification-avatar" id="notification-avatar">U</div>
+            <div class="notification-info">
+                <h4 id="notification-name">Входящий звонок</h4>
+                <p id="notification-type">Видеозвонок...</p>
+            </div>
+            <div class="notification-actions">
+                <button class="control-btn accept-call" onclick="acceptIncomingCall()">📞</button>
+                <button class="control-btn decline-call" onclick="declineIncomingCall()">📵</button>
             </div>
         </div>
     </div>
@@ -631,6 +760,21 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // WebRTC переменные
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let currentCall = null;
+        let isCaller = false;
+
+        // STUN серверы для WebRTC
+        const pcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
         // Элементы DOM
         const loginPage = document.getElementById('login-page');
         const mainPage = document.getElementById('main-page');
@@ -642,24 +786,27 @@
         const userInfoSection = document.getElementById('user-info-section');
         const userAvatar = document.getElementById('user-avatar');
         const userDisplayName = document.getElementById('user-display-name');
-        const callModal = document.getElementById('call-modal');
-        const callAvatar = document.getElementById('call-avatar');
-        const callContactName = document.getElementById('call-contact-name');
-        const callType = document.getElementById('call-type');
-        const acceptCallBtn = document.getElementById('accept-call');
-        const declineCallBtn = document.getElementById('decline-call');
+        const userId = document.getElementById('user-id');
+        const myUserId = document.getElementById('my-user-id');
+        const callWindow = document.getElementById('call-window');
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const remoteUserName = document.getElementById('remote-user-name');
+        const callNotification = document.getElementById('call-notification');
+        const notificationAvatar = document.getElementById('notification-avatar');
+        const notificationName = document.getElementById('notification-name');
+        const notificationType = document.getElementById('notification-type');
+        const callInput = document.getElementById('call-input');
 
         // Переменные
         let allContacts = [];
         let currentUser = null;
-        let currentCall = null;
+        let currentCallDoc = null;
 
         // Слушатели событий
         googleSigninBtn.addEventListener('click', signInWithGoogle);
         logoutBtn.addEventListener('click', handleLogout);
         searchContacts.addEventListener('input', filterContacts);
-        acceptCallBtn.addEventListener('click', acceptCall);
-        declineCallBtn.addEventListener('click', declineCall);
 
         // Авторизация через Google
         function signInWithGoogle() {
@@ -674,7 +821,6 @@
                 .then((result) => {
                     console.log('Успешный вход:', result.user);
                     currentUser = result.user;
-                    // Сохраняем пользователя в Firestore
                     saveUserToFirestore(result.user);
                 })
                 .catch((error) => {
@@ -686,24 +832,31 @@
 
         // Сохранение пользователя в Firestore
         function saveUserToFirestore(user) {
-            db.collection('users').doc(user.uid).set({
+            const userData = {
                 uid: user.uid,
                 displayName: user.displayName,
                 email: user.email,
                 photoURL: user.photoURL,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'online'
-            }, { merge: true });
+                status: 'online',
+                userAgent: navigator.userAgent
+            };
+            
+            db.collection('users').doc(user.uid).set(userData, { merge: true });
         }
 
         // Выход из системы
         function handleLogout() {
             if (currentUser) {
-                // Обновляем статус на оффлайн
                 db.collection('users').doc(currentUser.uid).update({
                     status: 'offline',
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                if (currentCallDoc) {
+                    currentCallDoc.delete();
+                }
+                endCall();
             }
             
             auth.signOut()
@@ -724,6 +877,7 @@
                 showMainPage(user);
                 loadContactsFromFirestore();
                 showUserInfo(user);
+                listenForIncomingCalls();
             } else {
                 showLoginPage();
             }
@@ -741,7 +895,7 @@
                         const contact = doc.data();
                         allContacts.push({
                             id: doc.id,
-                            name: contact.displayName || 'Пользователь',
+                            name: contact.displayName || contact.email,
                             email: contact.email,
                             photoURL: contact.photoURL,
                             status: contact.status || 'offline',
@@ -750,138 +904,325 @@
                         });
                     });
                     
-                    // Если контактов нет, показываем демо-данные
-                    if (allContacts.length === 0) {
-                        loadDemoContacts();
-                    } else {
-                        displayContacts(allContacts);
-                    }
+                    displayContacts(allContacts);
                 }, (error) => {
                     console.error('Ошибка загрузки контактов:', error);
-                    loadDemoContacts();
                 });
         }
 
-        // Загрузка демо-контактов
-        function loadDemoContacts() {
-            allContacts = [
-                {
-                    id: '1',
-                    name: 'Александр Иванов',
-                    email: 'alex.ivanov@gmail.com',
-                    photoURL: null,
-                    status: 'online',
-                    initials: 'АИ'
-                },
-                {
-                    id: '2',
-                    name: 'Мария Петрова',
-                    email: 'maria.petrova@company.com',
-                    photoURL: null,
-                    status: 'away',
-                    initials: 'МП'
-                },
-                {
-                    id: '3',
-                    name: 'Дмитрий Сидоров',
-                    email: 'dmitry.sidorov@gmail.com',
-                    photoURL: null,
-                    status: 'online',
-                    initials: 'ДС'
-                },
-                {
-                    id: '4',
-                    name: 'Екатерина Смирнова',
-                    email: 'ek.smirnova@yahoo.com',
-                    photoURL: null,
-                    status: 'offline',
-                    initials: 'ЕС'
-                },
-                {
-                    id: '5',
-                    name: 'Сергей Козлов',
-                    email: 's.kozlov@corporation.com',
-                    photoURL: null,
-                    status: 'online',
-                    initials: 'СК'
+        // Прослушивание входящих звонков
+        function listenForIncomingCalls() {
+            db.collection('calls')
+                .where('to', '==', currentUser.uid)
+                .where('status', '==', 'calling')
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const callData = change.doc.data();
+                            showIncomingCall(callData, change.doc.id);
+                        }
+                    });
+                });
+
+            db.collection('calls')
+                .where('from', '==', currentUser.uid)
+                .where('status', 'in', ['calling', 'accepted'])
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        const callData = change.doc.data();
+                        if (change.type === 'modified' && callData.status === 'accepted') {
+                            handleCallAccepted(callData, change.doc.id);
+                        }
+                    });
+                });
+        }
+
+        // Показать входящий звонок
+        function showIncomingCall(callData, callId) {
+            currentCallDoc = db.collection('calls').doc(callId);
+            
+            // Получаем информацию о зввонившем
+            db.collection('users').doc(callData.from).get().then((doc) => {
+                if (doc.exists) {
+                    const caller = doc.data();
+                    
+                    notificationName.textContent = `Входящий звонок от ${caller.displayName}`;
+                    notificationType.textContent = callData.type === 'video' ? '📹 Видеозвонок' : '📞 Голосовой звонок';
+                    
+                    if (caller.photoURL) {
+                        notificationAvatar.style.backgroundImage = `url('${caller.photoURL}')`;
+                        notificationAvatar.style.backgroundSize = 'cover';
+                        notificationAvatar.textContent = '';
+                    } else {
+                        notificationAvatar.textContent = getInitials(caller.displayName || caller.email);
+                        notificationAvatar.style.backgroundImage = 'none';
+                    }
+                    
+                    callNotification.classList.add('active');
+                    
+                    // Автоматически скрыть через 30 секунд
+                    setTimeout(() => {
+                        if (callNotification.classList.contains('active')) {
+                            declineIncomingCall();
+                        }
+                    }, 30000);
                 }
-            ];
-            
-            displayContacts(allContacts);
+            });
         }
 
-        // Инициация видеозвонка
-        function startVideoCall(contact) {
-            currentCall = {
-                contact: contact,
-                type: 'video',
-                timestamp: new Date()
+        // Принять входящий звонок
+        function acceptIncomingCall() {
+            callNotification.classList.remove('active');
+            
+            if (currentCallDoc) {
+                currentCallDoc.update({
+                    status: 'accepted',
+                    answeredAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    startWebRTC(false);
+                });
+            }
+        }
+
+        // Отклонить входящий звонок
+        function declineIncomingCall() {
+            callNotification.classList.remove('active');
+            
+            if (currentCallDoc) {
+                currentCallDoc.update({
+                    status: 'declined',
+                    endedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                currentCallDoc = null;
+            }
+        }
+
+        // Обработка принятого звонка
+        function handleCallAccepted(callData, callId) {
+            currentCallDoc = db.collection('calls').doc(callId);
+            startWebRTC(true);
+        }
+
+        // Начать быстрый звонок
+        function startQuickCall(type) {
+            const target = callInput.value.trim();
+            if (!target) {
+                alert('Введите email или ID пользователя');
+                return;
+            }
+
+            // Ищем пользователя по email или ID
+            db.collection('users')
+                .where(target.includes('@') ? 'email' : 'uid', '==', target)
+                .get()
+                .then((snapshot) => {
+                    if (snapshot.empty) {
+                        alert('Пользователь не найден');
+                        return;
+                    }
+
+                    const userDoc = snapshot.docs[0];
+                    const targetUser = userDoc.data();
+                    
+                    // Создаем запись о звонке
+                    const callData = {
+                        from: currentUser.uid,
+                        fromName: currentUser.displayName,
+                        to: targetUser.uid,
+                        type: type,
+                        status: 'calling',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    db.collection('calls').add(callData)
+                        .then((docRef) => {
+                            currentCallDoc = docRef;
+                            isCaller = true;
+                            showCallWindow(targetUser, type);
+                        })
+                        .catch((error) => {
+                            console.error('Ошибка создания звонка:', error);
+                            alert('Ошибка при создании звонка');
+                        });
+                })
+                .catch((error) => {
+                    console.error('Ошибка поиска пользователя:', error);
+                    alert('Ошибка при поиске пользователя');
+                });
+        }
+
+        // Начать звонок контакту
+        function startCallToContact(contact, type) {
+            const callData = {
+                from: currentUser.uid,
+                fromName: currentUser.displayName,
+                to: contact.id,
+                type: type,
+                status: 'calling',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            
-            // В реальном приложении здесь была бы интеграция с WebRTC
-            showCallModal(contact, 'видеозвонок');
-            
-            // Симуляция исходящего звонка
-            setTimeout(() => {
-                simulateIncomingCall(contact, 'video');
-            }, 2000);
+
+            db.collection('calls').add(callData)
+                .then((docRef) => {
+                    currentCallDoc = docRef;
+                    isCaller = true;
+                    showCallWindow(contact, type);
+                })
+                .catch((error) => {
+                    console.error('Ошибка создания звонка:', error);
+                    alert('Ошибка при создании звонка');
+                });
         }
 
-        // Инициация голосового звонка
-        function startVoiceCall(contact) {
-            currentCall = {
-                contact: contact,
-                type: 'voice',
-                timestamp: new Date()
-            };
-            
-            showCallModal(contact, 'голосовой звонок');
-            
-            // Симуляция исходящего звонка
-            setTimeout(() => {
-                simulateIncomingCall(contact, 'voice');
-            }, 2000);
+        // Показать окно звонка
+        function showCallWindow(contact, type) {
+            remoteUserName.textContent = contact.name;
+            callWindow.classList.add('active');
+            startWebRTC(isCaller);
         }
 
-        // Симуляция входящего звонка
-        function simulateIncomingCall(contact, type) {
-            callType.textContent = `Входящий ${type === 'video' ? 'видеозвонок' : 'голосовой звонок'}...`;
-        }
-
-        // Показать модальное окно звонка
-        function showCallModal(contact, callTypeText) {
-            callContactName.textContent = contact.name;
-            callType.textContent = `Исходящий ${callTypeText}...`;
-            
-            if (contact.photoURL) {
-                callAvatar.style.backgroundImage = `url('${contact.photoURL}')`;
-                callAvatar.style.backgroundSize = 'cover';
-                callAvatar.textContent = '';
-            } else {
-                callAvatar.textContent = contact.initials;
-                callAvatar.style.backgroundImage = 'none';
+        // Завершить звонок
+        function endCall() {
+            if (currentCallDoc) {
+                currentCallDoc.update({
+                    status: 'ended',
+                    endedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                currentCallDoc = null;
             }
             
-            callModal.classList.add('active');
+            callWindow.classList.remove('active');
+            
+            // Останавливаем потоки
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            localVideo.srcObject = null;
+            remoteVideo.srcObject = null;
         }
 
-        // Принять звонок
-        function acceptCall() {
-            if (currentCall) {
-                alert(`Звонок с ${currentCall.contact.name} принят!`);
-                // Здесь была бы реальная логика WebRTC
+        // WebRTC инициализация
+        async function startWebRTC(isCaller) {
+            try {
+                // Получаем медиапоток
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                localVideo.srcObject = localStream;
+
+                // Создаем peer connection
+                peerConnection = new RTCPeerConnection(pcConfig);
+
+                // Добавляем локальные треки
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Получаем удаленный поток
+                peerConnection.ontrack = (event) => {
+                    remoteStream = event.streams[0];
+                    remoteVideo.srcObject = remoteStream;
+                };
+
+                // Обработка ICE кандидатов
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate && currentCallDoc) {
+                        currentCallDoc.update({
+                            iceCandidates: firebase.firestore.FieldValue.arrayUnion(event.candidate.toJSON())
+                        });
+                    }
+                };
+
+                // Слушаем ICE кандидатов от другого пользователя
+                if (currentCallDoc) {
+                    currentCallDoc.onSnapshot((doc) => {
+                        const data = doc.data();
+                        if (data.iceCandidates) {
+                            data.iceCandidates.forEach(candidate => {
+                                peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                            });
+                        }
+                    });
+                }
+
+                if (isCaller) {
+                    // Создаем offer
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    if (currentCallDoc) {
+                        currentCallDoc.update({
+                            offer: offer
+                        });
+                    }
+                } else {
+                    // Ждем offer и создаем answer
+                    currentCallDoc.onSnapshot((doc) => {
+                        const data = doc.data();
+                        if (data.offer && !peerConnection.remoteDescription) {
+                            peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                                .then(() => peerConnection.createAnswer())
+                                .then(answer => {
+                                    peerConnection.setLocalDescription(answer);
+                                    currentCallDoc.update({
+                                        answer: answer
+                                    });
+                                });
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('WebRTC ошибка:', error);
+                alert('Ошибка доступа к камере/микрофону');
+                endCall();
             }
-            callModal.classList.remove('active');
-            currentCall = null;
         }
 
-        // Отклонить звонок
-        function declineCall() {
-            if (currentCall) {
-                alert(`Звонок с ${currentCall.contact.name} отклонен`);
+        // Управление звонком
+        function toggleMute() {
+            if (localStream) {
+                const audioTracks = localStream.getAudioTracks();
+                audioTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                });
+                const muteBtn = document.getElementById('mute-btn');
+                muteBtn.textContent = track.enabled ? '🎤' : '🔇';
             }
-            callModal.classList.remove('active');
-            currentCall = null;
+        }
+
+        function toggleVideo() {
+            if (localStream) {
+                const videoTracks = localStream.getVideoTracks();
+                videoTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                });
+                const videoBtn = document.getElementById('video-btn');
+                videoBtn.textContent = track.enabled ? '📹' : '📷';
+            }
+        }
+
+        // Вспомогательные функции
+        function getInitials(name) {
+            return name.split(' ')
+                .map(part => part[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        function copyMyId() {
+            navigator.clipboard.writeText(currentUser.uid);
+            alert('ID скопирован в буфер обмена!');
         }
 
         // Показать информацию о пользователе
@@ -889,6 +1230,8 @@
             userInfoSection.style.display = 'block';
             userDisplayName.textContent = user.displayName || 'Пользователь';
             userEmail.textContent = user.email;
+            userId.textContent = user.uid;
+            myUserId.textContent = user.uid;
             
             if (user.photoURL) {
                 userAvatar.style.backgroundImage = `url('${user.photoURL}')`;
@@ -901,22 +1244,13 @@
             }
         }
 
-        // Получение инициалов
-        function getInitials(name) {
-            return name.split(' ')
-                .map(part => part[0])
-                .join('')
-                .toUpperCase()
-                .substring(0, 2);
-        }
-
         // Отображение контактов
         function displayContacts(contacts) {
             if (contacts.length === 0) {
                 contactsList.innerHTML = `
                     <div class="no-contacts">
                         <h3>Контакты не найдены</h3>
-                        <p>Попробуйте изменить поисковый запрос</p>
+                        <p>Другие пользователи появятся здесь когда войдут в систему</p>
                     </div>
                 `;
                 return;
@@ -932,10 +1266,10 @@
                         <div class="contact-email">${contact.email}</div>
                     </div>
                     <div class="contact-actions">
-                        <button class="call-btn video-call" onclick="startVideoCall(${JSON.stringify(contact).replace(/"/g, '&quot;')})">
+                        <button class="call-btn video-call" onclick="startCallToContact(${JSON.stringify(contact).replace(/"/g, '&quot;')}, 'video')">
                             📹 Видео
                         </button>
-                        <button class="call-btn voice-call" onclick="startVoiceCall(${JSON.stringify(contact).replace(/"/g, '&quot;')})">
+                        <button class="call-btn voice-call" onclick="startCallToContact(${JSON.stringify(contact).replace(/"/g, '&quot;')}, 'audio')">
                             📞 Голос
                         </button>
                     </div>
@@ -946,7 +1280,6 @@
             `).join('');
         }
 
-        // Получение текста статуса
         function getStatusText(status) {
             switch(status) {
                 case 'online': return '🟢 В сети';
@@ -956,7 +1289,6 @@
             }
         }
 
-        // Фильтрация контактов
         function filterContacts() {
             const searchTerm = searchContacts.value.toLowerCase();
             const filteredContacts = allContacts.filter(contact => 
@@ -966,19 +1298,16 @@
             displayContacts(filteredContacts);
         }
 
-        // Показать страницу входа
         function showLoginPage() {
             loginPage.classList.add('active');
             mainPage.classList.remove('active');
         }
 
-        // Показать главную страницу
         function showMainPage(user) {
             loginPage.classList.remove('active');
             mainPage.classList.add('active');
         }
 
-        // Сброс кнопки входа
         function resetLoginButton() {
             googleSigninBtn.disabled = false;
             googleSigninBtn.innerHTML = `
@@ -994,10 +1323,9 @@
 
         // Инициализация приложения
         function init() {
-            console.log('Video Call приложение инициализировано');
+            console.log('Video Call Real Time приложение инициализировано');
         }
 
-        // Запуск приложения
         init();
     </script>
 </body>
