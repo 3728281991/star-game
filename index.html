@@ -15,9 +15,6 @@
         body {
             background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             color: #333;
         }
 
@@ -219,7 +216,6 @@
             padding: 20px 30px;
             border-bottom: 1px solid #f8f8f8;
             transition: background 0.3s ease;
-            cursor: pointer;
         }
 
         .contact-item:hover {
@@ -242,10 +238,12 @@
             font-weight: 600;
             font-size: 18px;
             margin-right: 15px;
+            flex-shrink: 0;
         }
 
         .contact-info {
             flex: 1;
+            min-width: 0;
         }
 
         .contact-name {
@@ -253,11 +251,57 @@
             font-size: 16px;
             color: #333;
             margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .contact-email {
             font-size: 14px;
             color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .call-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .video-call {
+            background: #4285F4;
+            color: white;
+        }
+
+        .video-call:hover {
+            background: #3367d6;
+            transform: translateY(-1px);
+        }
+
+        .voice-call {
+            background: #34A853;
+            color: white;
+        }
+
+        .voice-call:hover {
+            background: #2e8b47;
+            transform: translateY(-1px);
         }
 
         .contact-status {
@@ -265,16 +309,23 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
+            margin-left: 15px;
+            flex-shrink: 0;
         }
 
-        .status-authorized {
+        .status-online {
             background: #e8f5e8;
             color: #2ecc71;
         }
 
-        .status-unauthorized {
-            background: #ffeaea;
-            color: #e74c3c;
+        .status-offline {
+            background: #f8f9fa;
+            color: #666;
+        }
+
+        .status-away {
+            background: #fff3cd;
+            color: #856404;
         }
 
         .loading {
@@ -311,6 +362,98 @@
             margin: 0 auto 15px;
         }
 
+        /* Модальное окно звонка */
+        .call-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .call-modal.active {
+            display: flex;
+        }
+
+        .call-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .call-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 32px;
+            margin: 0 auto 20px;
+        }
+
+        .call-info h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .call-info p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .accept-call {
+            background: #34A853;
+            color: white;
+        }
+
+        .accept-call:hover {
+            background: #2e8b47;
+            transform: scale(1.1);
+        }
+
+        .decline-call {
+            background: #EA4335;
+            color: white;
+        }
+
+        .decline-call:hover {
+            background: #d33426;
+            transform: scale(1.1);
+        }
+
         /* Адаптивность */
         @media (max-width: 768px) {
             .header-content {
@@ -335,6 +478,43 @@
 
             .contact-item {
                 padding: 15px 20px;
+                flex-wrap: wrap;
+            }
+
+            .contact-actions {
+                margin-left: 65px;
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .contact-status {
+                margin-left: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .contact-item {
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: left;
+            }
+
+            .contact-avatar {
+                margin-bottom: 10px;
+            }
+
+            .contact-actions {
+                margin-left: 0;
+                margin-top: 15px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .contact-status {
+                margin-left: 0;
+                margin-top: 10px;
+                align-self: flex-start;
             }
         }
     </style>
@@ -342,7 +522,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div id="app">
@@ -417,6 +597,21 @@
                 </div>
             </main>
         </div>
+
+        <!-- Модальное окно звонка -->
+        <div id="call-modal" class="call-modal">
+            <div class="call-container">
+                <div class="call-avatar" id="call-avatar">U</div>
+                <div class="call-info">
+                    <h3 id="call-contact-name">Контакты</h3>
+                    <p id="call-type">Входящий видеозвонок...</p>
+                </div>
+                <div class="call-controls">
+                    <button class="control-btn accept-call" id="accept-call">📞</button>
+                    <button class="control-btn decline-call" id="decline-call">📵</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -433,8 +628,8 @@
 
         // Инициализация Firebase
         firebase.initializeApp(firebaseConfig);
-        const analytics = firebase.analytics();
         const auth = firebase.auth();
+        const db = firebase.firestore();
 
         // Элементы DOM
         const loginPage = document.getElementById('login-page');
@@ -447,20 +642,28 @@
         const userInfoSection = document.getElementById('user-info-section');
         const userAvatar = document.getElementById('user-avatar');
         const userDisplayName = document.getElementById('user-display-name');
+        const callModal = document.getElementById('call-modal');
+        const callAvatar = document.getElementById('call-avatar');
+        const callContactName = document.getElementById('call-contact-name');
+        const callType = document.getElementById('call-type');
+        const acceptCallBtn = document.getElementById('accept-call');
+        const declineCallBtn = document.getElementById('decline-call');
 
         // Переменные
         let allContacts = [];
+        let currentUser = null;
+        let currentCall = null;
 
         // Слушатели событий
         googleSigninBtn.addEventListener('click', signInWithGoogle);
         logoutBtn.addEventListener('click', handleLogout);
         searchContacts.addEventListener('input', filterContacts);
+        acceptCallBtn.addEventListener('click', acceptCall);
+        declineCallBtn.addEventListener('click', declineCall);
 
-        // Авторизация через Google (БЕЗ запроса контактов)
+        // Авторизация через Google
         function signInWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            
-            // ТОЛЬКО базовые разрешения - без контактов!
             provider.addScope('profile');
             provider.addScope('email');
             
@@ -470,7 +673,9 @@
             auth.signInWithPopup(provider)
                 .then((result) => {
                     console.log('Успешный вход:', result.user);
-                    analytics.logEvent('login', { method: 'Google' });
+                    currentUser = result.user;
+                    // Сохраняем пользователя в Firestore
+                    saveUserToFirestore(result.user);
                 })
                 .catch((error) => {
                     console.error('Ошибка авторизации:', error);
@@ -479,11 +684,32 @@
                 });
         }
 
+        // Сохранение пользователя в Firestore
+        function saveUserToFirestore(user) {
+            db.collection('users').doc(user.uid).set({
+                uid: user.uid,
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'online'
+            }, { merge: true });
+        }
+
         // Выход из системы
         function handleLogout() {
+            if (currentUser) {
+                // Обновляем статус на оффлайн
+                db.collection('users').doc(currentUser.uid).update({
+                    status: 'offline',
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            
             auth.signOut()
                 .then(() => {
                     allContacts = [];
+                    currentUser = null;
                     resetLoginButton();
                 })
                 .catch((error) => {
@@ -494,15 +720,169 @@
         // Слушатель состояния авторизации
         auth.onAuthStateChanged((user) => {
             if (user) {
-                // Пользователь авторизован
+                currentUser = user;
                 showMainPage(user);
-                loadDemoContacts(); // Загружаем демо-контакты вместо реальных
+                loadContactsFromFirestore();
                 showUserInfo(user);
             } else {
-                // Пользователь не авторизован
                 showLoginPage();
             }
         });
+
+        // Загрузка контактов из Firestore
+        function loadContactsFromFirestore() {
+            contactsList.innerHTML = '<div class="loading">Загрузка контактов...</div>';
+            
+            db.collection('users')
+                .where('email', '!=', currentUser.email)
+                .onSnapshot((snapshot) => {
+                    allContacts = [];
+                    snapshot.forEach((doc) => {
+                        const contact = doc.data();
+                        allContacts.push({
+                            id: doc.id,
+                            name: contact.displayName || 'Пользователь',
+                            email: contact.email,
+                            photoURL: contact.photoURL,
+                            status: contact.status || 'offline',
+                            lastSeen: contact.lastSeen,
+                            initials: getInitials(contact.displayName || contact.email)
+                        });
+                    });
+                    
+                    // Если контактов нет, показываем демо-данные
+                    if (allContacts.length === 0) {
+                        loadDemoContacts();
+                    } else {
+                        displayContacts(allContacts);
+                    }
+                }, (error) => {
+                    console.error('Ошибка загрузки контактов:', error);
+                    loadDemoContacts();
+                });
+        }
+
+        // Загрузка демо-контактов
+        function loadDemoContacts() {
+            allContacts = [
+                {
+                    id: '1',
+                    name: 'Александр Иванов',
+                    email: 'alex.ivanov@gmail.com',
+                    photoURL: null,
+                    status: 'online',
+                    initials: 'АИ'
+                },
+                {
+                    id: '2',
+                    name: 'Мария Петрова',
+                    email: 'maria.petrova@company.com',
+                    photoURL: null,
+                    status: 'away',
+                    initials: 'МП'
+                },
+                {
+                    id: '3',
+                    name: 'Дмитрий Сидоров',
+                    email: 'dmitry.sidorov@gmail.com',
+                    photoURL: null,
+                    status: 'online',
+                    initials: 'ДС'
+                },
+                {
+                    id: '4',
+                    name: 'Екатерина Смирнова',
+                    email: 'ek.smirnova@yahoo.com',
+                    photoURL: null,
+                    status: 'offline',
+                    initials: 'ЕС'
+                },
+                {
+                    id: '5',
+                    name: 'Сергей Козлов',
+                    email: 's.kozlov@corporation.com',
+                    photoURL: null,
+                    status: 'online',
+                    initials: 'СК'
+                }
+            ];
+            
+            displayContacts(allContacts);
+        }
+
+        // Инициация видеозвонка
+        function startVideoCall(contact) {
+            currentCall = {
+                contact: contact,
+                type: 'video',
+                timestamp: new Date()
+            };
+            
+            // В реальном приложении здесь была бы интеграция с WebRTC
+            showCallModal(contact, 'видеозвонок');
+            
+            // Симуляция исходящего звонка
+            setTimeout(() => {
+                simulateIncomingCall(contact, 'video');
+            }, 2000);
+        }
+
+        // Инициация голосового звонка
+        function startVoiceCall(contact) {
+            currentCall = {
+                contact: contact,
+                type: 'voice',
+                timestamp: new Date()
+            };
+            
+            showCallModal(contact, 'голосовой звонок');
+            
+            // Симуляция исходящего звонка
+            setTimeout(() => {
+                simulateIncomingCall(contact, 'voice');
+            }, 2000);
+        }
+
+        // Симуляция входящего звонка
+        function simulateIncomingCall(contact, type) {
+            callType.textContent = `Входящий ${type === 'video' ? 'видеозвонок' : 'голосовой звонок'}...`;
+        }
+
+        // Показать модальное окно звонка
+        function showCallModal(contact, callTypeText) {
+            callContactName.textContent = contact.name;
+            callType.textContent = `Исходящий ${callTypeText}...`;
+            
+            if (contact.photoURL) {
+                callAvatar.style.backgroundImage = `url('${contact.photoURL}')`;
+                callAvatar.style.backgroundSize = 'cover';
+                callAvatar.textContent = '';
+            } else {
+                callAvatar.textContent = contact.initials;
+                callAvatar.style.backgroundImage = 'none';
+            }
+            
+            callModal.classList.add('active');
+        }
+
+        // Принять звонок
+        function acceptCall() {
+            if (currentCall) {
+                alert(`Звонок с ${currentCall.contact.name} принят!`);
+                // Здесь была бы реальная логика WebRTC
+            }
+            callModal.classList.remove('active');
+            currentCall = null;
+        }
+
+        // Отклонить звонок
+        function declineCall() {
+            if (currentCall) {
+                alert(`Звонок с ${currentCall.contact.name} отклонен`);
+            }
+            callModal.classList.remove('active');
+            currentCall = null;
+        }
 
         // Показать информацию о пользователе
         function showUserInfo(user) {
@@ -510,7 +890,6 @@
             userDisplayName.textContent = user.displayName || 'Пользователь';
             userEmail.textContent = user.email;
             
-            // Аватар пользователя
             if (user.photoURL) {
                 userAvatar.style.backgroundImage = `url('${user.photoURL}')`;
                 userAvatar.style.backgroundSize = 'cover';
@@ -522,71 +901,7 @@
             }
         }
 
-        // Загрузка демо-контактов (без доступа к реальным)
-        function loadDemoContacts() {
-            allContacts = [
-                {
-                    name: 'Александр Иванов',
-                    email: 'alex.ivanov@gmail.com',
-                    photo: null,
-                    initials: 'АИ',
-                    isAuthorized: true
-                },
-                {
-                    name: 'Мария Петрова',
-                    email: 'maria.petrova@company.com',
-                    photo: null,
-                    initials: 'МП',
-                    isAuthorized: false
-                },
-                {
-                    name: 'Дмитрий Сидоров',
-                    email: 'dmitry.sidorov@gmail.com',
-                    photo: null,
-                    initials: 'ДС',
-                    isAuthorized: true
-                },
-                {
-                    name: 'Екатерина Смирнова',
-                    email: 'ek.smirnova@yahoo.com',
-                    photo: null,
-                    initials: 'ЕС',
-                    isAuthorized: true
-                },
-                {
-                    name: 'Сергей Козлов',
-                    email: 's.kozlov@corporation.com',
-                    photo: null,
-                    initials: 'СК',
-                    isAuthorized: false
-                },
-                {
-                    name: 'Анна Волкова',
-                    email: 'anna.volkova@gmail.com',
-                    photo: null,
-                    initials: 'АВ',
-                    isAuthorized: true
-                },
-                {
-                    name: 'Михаил Орлов',
-                    email: 'mikhail.orlov@startup.io',
-                    photo: null,
-                    initials: 'МО',
-                    isAuthorized: false
-                },
-                {
-                    name: 'Ольга Новикова',
-                    email: 'olga.novikova@university.edu',
-                    photo: null,
-                    initials: 'ОН',
-                    isAuthorized: true
-                }
-            ];
-            
-            displayContacts(allContacts);
-        }
-
-        // Получение инициалов из имени
+        // Получение инициалов
         function getInitials(name) {
             return name.split(' ')
                 .map(part => part[0])
@@ -609,18 +924,36 @@
 
             contactsList.innerHTML = contacts.map(contact => `
                 <div class="contact-item">
-                    <div class="contact-avatar" style="${contact.photo ? `background-image: url('${contact.photo}'); background-size: cover;` : ''}">
-                        ${contact.photo ? '' : contact.initials}
+                    <div class="contact-avatar" style="${contact.photoURL ? `background-image: url('${contact.photoURL}'); background-size: cover;` : ''}">
+                        ${contact.photoURL ? '' : contact.initials}
                     </div>
                     <div class="contact-info">
                         <div class="contact-name">${contact.name}</div>
                         <div class="contact-email">${contact.email}</div>
                     </div>
-                    <div class="contact-status ${contact.isAuthorized ? 'status-authorized' : 'status-unauthorized'}">
-                        ${contact.isAuthorized ? '✅ В приложении' : '❌ Не в приложении'}
+                    <div class="contact-actions">
+                        <button class="call-btn video-call" onclick="startVideoCall(${JSON.stringify(contact).replace(/"/g, '&quot;')})">
+                            📹 Видео
+                        </button>
+                        <button class="call-btn voice-call" onclick="startVoiceCall(${JSON.stringify(contact).replace(/"/g, '&quot;')})">
+                            📞 Голос
+                        </button>
+                    </div>
+                    <div class="contact-status status-${contact.status}">
+                        ${getStatusText(contact.status)}
                     </div>
                 </div>
             `).join('');
+        }
+
+        // Получение текста статуса
+        function getStatusText(status) {
+            switch(status) {
+                case 'online': return '🟢 В сети';
+                case 'away': return '🟡 Отошел';
+                case 'offline': return '⚫ Не в сети';
+                default: return '⚫ Не в сети';
+            }
         }
 
         // Фильтрация контактов
