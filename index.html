@@ -786,6 +786,12 @@
                     <div class="call-container">
                         <div class="call-panel">
                             <h3><i class="fas fa-phone"></i> Быстрый звонок</h3>
+                            <!-- Добавьте этот переключатель -->
+                            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="sound-toggle" checked>
+                                <label for="sound-toggle">Звук уведомлений</label>
+                            </div>
+                            
                             <input type="text" id="call-input" class="call-input" placeholder="Введите email пользователя">
                             <button class="quick-call-btn" onclick="startQuickCall('video')">
                                 <i class="fas fa-video"></i> Начать видеозвонок
@@ -1804,3 +1810,4 @@
     </script>
 </body>
 </html>
+
