@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pingr - Быстрые звонки. Быстрое решение.</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <style>
@@ -400,27 +401,221 @@
         }
 
         /* Responsive */
+        /* Мобильная адаптация */
         @media (max-width: 768px) {
+            body {
+                padding-top: 70px;
+            }
+            
+            header {
+                padding: 10px 5%;
+                height: 70px;
+            }
+            
+            .logo {
+                font-size: 20px;
+            }
+            
+            .nav-buttons {
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 6px 15px;
+                font-size: 12px;
+            }
+            
+            .user-menu {
+                gap: 8px;
+            }
+            
+            .user-avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+            
+            .user-name {
+                font-size: 14px;
+                display: none; /* Скрываем имя на мобильных */
+            }
+            
+            .user-dropdown {
+                min-width: 160px;
+                right: -10px;
+            }
+            
+            .hero {
+                padding: 20px 15px;
+                min-height: calc(100vh - 70px);
+            }
+            
             .hero h1 {
-                font-size: 2.5rem;
+                font-size: 2rem;
+                margin-bottom: 15px;
             }
             
             .hero p {
-                font-size: 1.1rem;
+                font-size: 1rem;
+                margin-bottom: 30px;
             }
             
-            .features, .steps, .benefit-cards {
-                flex-direction: column;
-                align-items: center;
+            .cta-btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+                margin-bottom: 40px;
             }
             
-            .step, .benefit-card {
+            .features {
+                gap: 20px;
+            }
+            
+            .feature {
                 width: 100%;
-                max-width: 400px;
+                max-width: 300px;
+                padding: 20px;
+            }
+            
+            .feature i {
+                font-size: 2rem;
+            }
+            
+            .feature h3 {
+                font-size: 1.2rem;
+            }
+            
+            .section {
+                padding: 50px 5%;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+                margin-bottom: 40px;
+            }
+            
+            .steps {
+                gap: 20px;
+            }
+            
+            .step {
+                min-width: 100%;
+                padding: 25px 15px;
+            }
+            
+            .step-number {
+                width: 45px;
+                height: 45px;
+                line-height: 45px;
+                font-size: 1.3rem;
+            }
+            
+            .step h3 {
+                font-size: 1.3rem;
+            }
+            
+            .benefit-cards {
+                gap: 20px;
+            }
+            
+            .benefit-card {
+                width: 100%;
+                max-width: 300px;
+                padding: 30px 20px;
+            }
+            
+            .benefit-card i {
+                font-size: 2.5rem;
+            }
+            
+            .benefit-card h3 {
+                font-size: 1.3rem;
+            }
+            
+            footer {
+                padding: 30px 5% 20px;
             }
             
             .footer-content {
-                flex-direction: column;
+                gap: 30px;
+            }
+            
+            .footer-section {
+                min-width: 100%;
+            }
+            
+            .social-icons {
+                justify-content: center;
+            }
+        }
+        
+        /* Маленькие телефоны */
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            
+            .hero p {
+                font-size: 0.9rem;
+            }
+            
+            .features {
+                gap: 15px;
+            }
+            
+            .feature {
+                padding: 15px;
+            }
+            
+            .step {
+                padding: 20px 10px;
+            }
+            
+            .benefit-card {
+                padding: 25px 15px;
+            }
+            
+            .user-dropdown {
+                min-width: 140px;
+            }
+            
+            .dropdown-item {
+                padding: 8px 15px;
+                font-size: 14px;
+            }
+        }
+        
+        /* Горизонтальная ориентация */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .hero {
+                min-height: auto;
+                padding: 40px 20px;
+            }
+            
+            .hero h1 {
+                font-size: 1.8rem;
+                margin-bottom: 10px;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+                margin-bottom: 20px;
+            }
+            
+            .cta-btn {
+                margin-bottom: 30px;
+            }
+            
+            .features {
+                flex-direction: row;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding-bottom: 10px;
+            }
+            
+            .feature {
+                min-width: 200px;
+                flex-shrink: 0;
             }
         }
     </style>
@@ -428,23 +623,23 @@
 <body>
     <!-- Header -->
     <header>
-        <a href="#" class="logo">Pingr</a>
-        <div class="nav-buttons">
-            <button class="btn login-btn" onclick="window.location.href='login.html'">Войти</button>
-            <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
+    <a href="#" class="logo">Pingr</a>
+    <div class="nav-buttons">
+        <button class="btn login-btn" onclick="window.location.href='login.html'">Войти</button>
+        <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
+    </div>
+    <div class="user-menu" id="userMenu">
+        <div class="user-avatar" id="userAvatar">
+            <span id="userInitial">U</span>
         </div>
-        <div class="user-menu" id="userMenu">
-            <div class="user-avatar" id="userAvatar">
-                <span id="userInitial">U</span>
-            </div>
-            <span class="user-name" id="userName">Пользователь</span>
-            <div class="user-dropdown">
-                <a href="#" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
-                <a href="#" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
-                <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
-            </div>
+        <span class="user-name" id="userName">Пользователь</span>
+        <div class="user-dropdown">
+            <a href="#" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
+            <a href="#" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
+            <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
         </div>
-    </header>
+    </div>
+</header>
 
     <!-- Hero Section -->
     <section class="hero">
