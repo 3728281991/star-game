@@ -976,16 +976,6 @@
                 });
             });
 
-            // Создание звонка
-            document.getElementById('createCallBtn').addEventListener('click', function() {
-                auth.onAuthStateChanged((user) => {
-                    if (user) {
-                        alert('Функция создания звонка будет доступна скоро!');
-                    } else {
-                        window.location.href = 'auth.html';
-                    }
-                });
-            });
         });
 
         document.addEventListener('DOMContentLoaded', function() {
