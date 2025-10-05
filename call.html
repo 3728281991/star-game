@@ -885,669 +885,685 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
-            authDomain: "video-call-94d0b.firebaseapp.com",
-            projectId: "video-call-94d0b",
-            storageBucket: "video-call-94d0b.firebasestorage.app",
-            messagingSenderId: "973586453149",
-            appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
-            measurementId: "G-TVLP5WTJGP"
+    apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
+    authDomain: "video-call-94d0b.firebaseapp.com",
+    projectId: "video-call-94d0b",
+    storageBucket: "video-call-94d0b.firebasestorage.app",
+    messagingSenderId: "973586453149",
+    appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
+    measurementId: "G-TVLP5WTJGP"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+let callState = {
+    isMuted: false,
+    isVideoOn: true,
+    isScreenSharing: false,
+    timer: 0,
+    timerInterval: null,
+    participants: [],
+    waitingUsers: [],
+    callId: null,
+    isHost: false,
+    waitingRoomEnabled: true,
+    localStream: null,
+    hasCamera: false,
+    hasMicrophone: false
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Call page loaded');
+    initializeCall();
+    setupEventListeners();
+    startTimer();
+    updateCurrentTime();
+});
+
+async function initializeCall() {
+    const urlParams = new URLSearchParams(window.location.search);
+    callState.callId = urlParams.get('id');
+    
+    if (!callState.callId) {
+        callState.callId = generateCallId();
+        window.history.replaceState({}, '', `?id=${callState.callId}`);
+        callState.isHost = true;
+        console.log('Created new call:', callState.callId);
+    }
+
+    console.log('Call ID:', callState.callId, 'Is Host:', callState.isHost);
+
+    // Сначала инициализируем медиа устройства
+    await initializeMediaDevices();
+
+    // Затем работаем с пользователем
+    const user = await getCurrentUser();
+    if (user) {
+        const userData = {
+            id: user.uid,
+            name: user.displayName || user.email,
+            email: user.email,
+            avatar: (user.displayName || user.email).charAt(0).toUpperCase()
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+        if (callState.isHost) {
+            createCallRoom(userData);
+        } else {
+            joinCallRoom(userData);
+        }
 
-        let callState = {
-            isMuted: false,
-            isVideoOn: true,
-            isScreenSharing: false,
-            timer: 0,
-            timerInterval: null,
-            participants: [],
-            waitingUsers: [],
-            callId: null,
-            isHost: false,
-            waitingRoomEnabled: true,
-            localStream: null,
-            hasCamera: false,
-            hasMicrophone: false
+        addParticipant(userData, true);
+    } else {
+        // Если не авторизован, все равно показываем интерфейс
+        const guestUser = {
+            id: 'guest_' + Date.now(),
+            name: 'Гость',
+            email: 'guest@pingr.com',
+            avatar: 'G'
         };
+        
+        if (callState.isHost) {
+            createCallRoom(guestUser);
+        } else {
+            joinCallRoom(guestUser);
+        }
+        
+        addParticipant(guestUser, true);
+        showNotification('Вы вошли как гость', 'warning');
+    }
+}
 
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeCall();
-            setupEventListeners();
-            startTimer();
-            updateCurrentTime();
+function getCurrentUser() {
+    return new Promise((resolve) => {
+        auth.onAuthStateChanged((user) => {
+            resolve(user);
         });
+    });
+}
 
-        async function initializeCall() {
-            const urlParams = new URLSearchParams(window.location.search);
-            callState.callId = urlParams.get('id');
-            
-            if (!callState.callId) {
-                callState.callId = generateCallId();
-                window.history.replaceState({}, '', `?id=${callState.callId}`);
-                callState.isHost = true;
-            }
+async function initializeMediaDevices() {
+    try {
+        console.log('Initializing media devices...');
+        
+        // Проверяем доступные устройства
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasVideo = devices.some(device => device.kind === 'videoinput');
+        const hasAudio = devices.some(device => device.kind === 'audioinput');
 
-            auth.onAuthStateChanged(async (user) => {
-                if (user) {
-                    const userData = {
-                        id: user.uid,
-                        name: user.displayName || user.email,
-                        email: user.email,
-                        avatar: (user.displayName || user.email).charAt(0).toUpperCase(),
-                        joinedAt: new Date().toISOString()
-                    };
+        callState.hasCamera = hasVideo;
+        callState.hasMicrophone = hasAudio;
 
-                    // Инициализация медиа устройств
-                    await initializeMediaDevices();
+        console.log('Available devices - Camera:', hasVideo, 'Microphone:', hasAudio);
 
-                    if (callState.isHost) {
-                        createCallRoom(userData);
-                    } else {
-                        joinCallRoom(userData);
-                    }
-
-                    addParticipant(userData, true);
-                    
-                } else {
-                    // Если не авторизован, показываем модалку входа
-                    showAuthModal();
-                }
-            });
-        }
-
-        async function initializeMediaDevices() {
+        if (hasVideo && hasAudio) {
             try {
-                // Проверяем доступные устройства
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const hasVideo = devices.some(device => device.kind === 'videoinput');
-                const hasAudio = devices.some(device => device.kind === 'audioinput');
-
-                callState.hasCamera = hasVideo;
-                callState.hasMicrophone = hasAudio;
-
-                if (hasVideo && hasAudio) {
-                    // Пробуем получить и видео и аудио
-                    try {
-                        callState.localStream = await navigator.mediaDevices.getUserMedia({
-                            video: true,
-                            audio: true
-                        });
-                        showNotification('Камера и микрофон подключены', 'success');
-                        addLocalVideoStream();
-                        return;
-                    } catch (error) {
-                        console.log('Не удалось получить оба устройства, пробуем по отдельности');
-                    }
-                }
-
-                if (hasAudio) {
-                    // Пробуем получить только аудио
-                    try {
-                        callState.localStream = await navigator.mediaDevices.getUserMedia({
-                            audio: true,
-                            video: false
-                        });
-                        callState.isVideoOn = false;
-                        showNotification('Подключен только микрофон', 'warning');
-                        addParticipantPlaceholder();
-                        updateCameraButton();
-                        return;
-                    } catch (audioError) {
-                        console.log('Не удалось получить микрофон');
-                    }
-                }
-
-                if (hasVideo) {
-                    // Пробуем получить только видео
-                    try {
-                        callState.localStream = await navigator.mediaDevices.getUserMedia({
-                            audio: false,
-                            video: true
-                        });
-                        callState.isMuted = true;
-                        showNotification('Подключена только камера', 'warning');
-                        addLocalVideoStream();
-                        updateMicrophoneButton();
-                        return;
-                    } catch (videoError) {
-                        console.log('Не удалось получить камеру');
-                    }
-                }
-
-                // Если ничего не получилось
-                showNotification('Не удалось подключить медиа устройства. Вы можете продолжить без камеры и микрофона.', 'error');
-                addParticipantPlaceholder();
-                callState.isMuted = true;
-                callState.isVideoOn = false;
-                updateMicrophoneButton();
-                updateCameraButton();
-
+                callState.localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                showNotification('Камера и микрофон подключены', 'success');
+                addLocalVideoStream();
+                return;
             } catch (error) {
-                console.error('Ошибка инициализации медиа устройств:', error);
-                showNotification('Ошибка доступа к медиа устройствам', 'error');
+                console.log('Cannot get both devices:', error);
+            }
+        }
+
+        if (hasAudio) {
+            try {
+                callState.localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: false
+                });
+                callState.isVideoOn = false;
+                showNotification('Подключен только микрофон', 'warning');
                 addParticipantPlaceholder();
-            }
-        }
-
-        function addLocalVideoStream() {
-            const videoGrid = document.getElementById('videoGrid');
-            const videoElement = document.createElement('video');
-            videoElement.id = 'localVideo';
-            videoElement.className = 'participant-video local-video';
-            videoElement.autoplay = true;
-            videoElement.muted = true;
-            videoElement.playsInline = true;
-            videoElement.srcObject = callState.localStream;
-
-            const participantHTML = `
-                <div class="video-participant ${callState.isMuted ? 'muted' : 'active'}" id="localParticipant">
-                    ${videoElement.outerHTML}
-                    <div class="device-status">
-                        <div class="device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}">
-                            <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
-                        </div>
-                        <div class="device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}">
-                            <i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>
-                        </div>
-                    </div>
-                    <div class="participant-info">
-                        <span class="status-indicator ${callState.isMuted ? 'status-muted' : 'status-online'}"></span>
-                        <span>Вы</span>
-                        <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
-                    </div>
-                </div>
-            `;
-
-            videoGrid.innerHTML = participantHTML;
-        }
-
-        function addParticipantPlaceholder() {
-            const videoGrid = document.getElementById('videoGrid');
-            const user = auth.currentUser;
-            const participantHTML = `
-                <div class="video-participant ${callState.isMuted ? 'muted' : 'active'}" id="localParticipant">
-                    <div class="participant-avatar">${(user.displayName || user.email).charAt(0).toUpperCase()}</div>
-                    <div class="device-status">
-                        <div class="device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}">
-                            <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
-                        </div>
-                        <div class="device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}">
-                            <i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>
-                        </div>
-                    </div>
-                    <div class="participant-info">
-                        <span class="status-indicator ${callState.isMuted ? 'status-muted' : 'status-online'}"></span>
-                        <span>Вы</span>
-                        <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
-                    </div>
-                </div>
-            `;
-            videoGrid.innerHTML = participantHTML;
-        }
-
-        function updateMicrophoneButton() {
-            const micBtn = document.getElementById('micBtn');
-            const micIcon = micBtn.querySelector('i');
-            
-            if (!callState.hasMicrophone) {
-                micBtn.classList.add('mic-off');
-                micBtn.disabled = true;
-                micBtn.setAttribute('data-tooltip', 'Микрофон недоступен');
-                micIcon.className = 'fas fa-microphone-slash';
+                updateCameraButton();
                 return;
-            }
-
-            if (callState.isMuted) {
-                micBtn.classList.add('mic-off');
-                micBtn.classList.remove('secondary');
-                micBtn.setAttribute('data-tooltip', 'Включить микрофон');
-                micIcon.className = 'fas fa-microphone-slash';
-            } else {
-                micBtn.classList.remove('mic-off');
-                micBtn.classList.add('secondary');
-                micBtn.setAttribute('data-tooltip', 'Выключить микрофон');
-                micIcon.className = 'fas fa-microphone';
+            } catch (audioError) {
+                console.log('Cannot get microphone:', audioError);
             }
         }
 
-        function updateCameraButton() {
-            const cameraBtn = document.getElementById('cameraBtn');
-            const cameraIcon = cameraBtn.querySelector('i');
-            
-            if (!callState.hasCamera) {
-                cameraBtn.classList.add('camera-off');
-                cameraBtn.disabled = true;
-                cameraBtn.setAttribute('data-tooltip', 'Камера недоступна');
-                cameraIcon.className = 'fas fa-video-slash';
+        if (hasVideo) {
+            try {
+                callState.localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: true
+                });
+                callState.isMuted = true;
+                showNotification('Подключена только камера', 'warning');
+                addLocalVideoStream();
+                updateMicrophoneButton();
                 return;
-            }
-
-            if (callState.isVideoOn) {
-                cameraBtn.classList.remove('camera-off');
-                cameraBtn.classList.add('secondary');
-                cameraBtn.setAttribute('data-tooltip', 'Выключить камеру');
-                cameraIcon.className = 'fas fa-video';
-            } else {
-                cameraBtn.classList.add('camera-off');
-                cameraBtn.classList.remove('secondary');
-                cameraBtn.setAttribute('data-tooltip', 'Включить камеру');
-                cameraIcon.className = 'fas fa-video-slash';
+            } catch (videoError) {
+                console.log('Cannot get camera:', videoError);
             }
         }
 
-        function toggleMicrophone() {
-            if (!callState.hasMicrophone) return;
+        // Если ничего не получилось
+        showNotification('Медиа устройства недоступны. Вы можете продолжить без камеры и микрофона.', 'warning');
+        addParticipantPlaceholder();
+        callState.isMuted = true;
+        callState.isVideoOn = false;
+        updateMicrophoneButton();
+        updateCameraButton();
 
-            if (callState.localStream) {
-                const audioTracks = callState.localStream.getAudioTracks();
-                audioTracks.forEach(track => {
-                    track.enabled = !track.enabled;
-                });
-                callState.isMuted = !audioTracks[0].enabled;
-            } else {
-                callState.isMuted = !callState.isMuted;
-            }
+    } catch (error) {
+        console.error('Media devices error:', error);
+        showNotification('Ошибка доступа к медиа устройствам', 'error');
+        addParticipantPlaceholder();
+    }
+}
 
-            // Обновляем UI
-            updateMicrophoneButton();
-            updateLocalParticipantUI();
-            
-            showNotification(callState.isMuted ? 'Микрофон выключен' : 'Микрофон включен');
-        }
+function createCallRoom(userData) {
+    console.log('Creating call room for:', userData.name);
+    
+    const callData = {
+        id: callState.callId,
+        host: userData,
+        participants: [userData],
+        waitingUsers: [],
+        settings: {
+            waitingRoom: true,
+            createdAt: new Date().toISOString()
+        },
+        status: 'active'
+    };
 
-        function toggleCamera() {
-            if (!callState.hasCamera) return;
+    // Сохраняем в localStorage
+    localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
+    document.getElementById('callTitle').textContent = `Звонок ${userData.name}`;
+    showNotification('Вы создали звонок', 'success');
+}
 
-            if (callState.localStream) {
-                const videoTracks = callState.localStream.getVideoTracks();
-                videoTracks.forEach(track => {
-                    track.enabled = !track.enabled;
-                });
-                callState.isVideoOn = !videoTracks[0].enabled;
-            } else {
-                callState.isVideoOn = !callState.isVideoOn;
-            }
+function joinCallRoom(userData) {
+    console.log('Joining call room:', callState.callId);
+    
+    const savedCall = localStorage.getItem(`call_${callState.callId}`);
+    
+    if (savedCall) {
+        const callData = JSON.parse(savedCall);
+        console.log('Found call:', callData);
+        
+        callState.waitingRoomEnabled = callData.settings.waitingRoom;
+        document.getElementById('waitingRoomToggle').checked = callState.waitingRoomEnabled;
+        document.getElementById('callTitle').textContent = `Звонок ${callData.host.name}`;
 
-            // Обновляем UI
-            updateCameraButton();
-            updateLocalParticipantUI();
-            
-            showNotification(callState.isVideoOn ? 'Камера включена' : 'Камера выключена');
-        }
-
-        function updateLocalParticipantUI() {
-            const localParticipant = document.getElementById('localParticipant');
-            if (!localParticipant) return;
-
-            // Обновляем статус индикатор
-            const statusIndicator = localParticipant.querySelector('.status-indicator');
-            const micIcon = localParticipant.querySelector('.participant-info i');
-            const deviceMicIcon = localParticipant.querySelector('.device-status .device-icon.mic-on, .device-status .device-icon.mic-off');
-            const deviceCameraIcon = localParticipant.querySelector('.device-status .device-icon.camera-on, .device-status .device-icon.camera-off');
-
-            if (statusIndicator) {
-                statusIndicator.className = `status-indicator ${callState.isMuted ? 'status-muted' : 'status-online'}`;
-            }
-
-            if (micIcon) {
-                micIcon.className = `fas fa-microphone${callState.isMuted ? '-slash' : ''}`;
-            }
-
-            if (deviceMicIcon) {
-                deviceMicIcon.className = `device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}`;
-                deviceMicIcon.innerHTML = `<i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>`;
-            }
-
-            if (deviceCameraIcon) {
-                deviceCameraIcon.className = `device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}`;
-                deviceCameraIcon.innerHTML = `<i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>`;
-            }
-
-            // Обновляем класс контейнера
-            localParticipant.className = `video-participant ${callState.isMuted ? 'muted' : 'active'}`;
-        }
-
-        // Остальные функции остаются похожими, но с улучшенным UI
-        function createCallRoom(userData) {
-            const callData = {
-                id: callState.callId,
-                host: userData,
-                participants: [userData],
-                waitingUsers: [],
-                settings: {
-                    waitingRoom: true,
-                    createdAt: new Date().toISOString()
-                },
-                status: 'active'
-            };
-
+        if (callState.waitingRoomEnabled) {
+            addToWaitingRoom(userData);
+            showNotification('Ожидайте подтверждения от организатора', 'warning');
+        } else {
+            // Добавляем в участники сразу
+            callData.participants.push(userData);
             localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
-            document.getElementById('callTitle').textContent = `Звонок ${userData.name}`;
+            addParticipant(userData, false);
+            showNotification(`Вы присоединились к звонку ${callData.host.name}`, 'success');
         }
+    } else {
+        console.log('Call not found, creating new one');
+        // Если звонок не найден, создаем его
+        callState.isHost = true;
+        createCallRoom(userData);
+    }
+}
 
-        function joinCallRoom(userData) {
-            const savedCall = localStorage.getItem(`call_${callState.callId}`);
-            if (savedCall) {
-                const callData = JSON.parse(savedCall);
-                callState.waitingRoomEnabled = callData.settings.waitingRoom;
-                document.getElementById('waitingRoomToggle').checked = callState.waitingRoomEnabled;
-                document.getElementById('callTitle').textContent = `Звонок ${callData.host.name}`;
+function addToWaitingRoom(userData) {
+    console.log('Adding to waiting room:', userData.name);
+    
+    callState.waitingUsers.push(userData);
+    updateWaitingRoomUI();
+    
+    const savedCall = localStorage.getItem(`call_${callState.callId}`);
+    if (savedCall) {
+        const callData = JSON.parse(savedCall);
+        callData.waitingUsers.push(userData);
+        localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
+    }
+}
 
-                if (callState.waitingRoomEnabled && !callState.isHost) {
-                    addToWaitingRoom(userData);
-                    showNotification('Ожидайте подтверждения от организатора', 'warning');
-                } else {
-                    addParticipant(userData, false);
-                    updateCallParticipants([...callData.participants, userData]);
-                }
-            } else {
-                showNotification('Звонок не найден', 'error');
-                setTimeout(() => window.location.href = 'index.html', 2000);
-            }
-        }
+function updateWaitingRoomUI() {
+    const waitingList = document.getElementById('waitingList');
+    waitingList.innerHTML = '';
 
-        function addToWaitingRoom(userData) {
-            callState.waitingUsers.push(userData);
-            updateWaitingRoomUI();
-            
-            const savedCall = localStorage.getItem(`call_${callState.callId}`);
-            if (savedCall) {
-                const callData = JSON.parse(savedCall);
-                callData.waitingUsers.push(userData);
-                localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
-            }
-        }
+    if (callState.waitingUsers.length === 0) {
+        waitingList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Нет ожидающих пользователей</p>';
+        return;
+    }
 
-        function updateWaitingRoomUI() {
-            const waitingList = document.getElementById('waitingList');
-            waitingList.innerHTML = '';
-
-            if (callState.waitingUsers.length === 0) {
-                waitingList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Нет ожидающих пользователей</p>';
-                return;
-            }
-
-            callState.waitingUsers.forEach(user => {
-                const waitingUserHTML = `
-                    <div class="waiting-user">
-                        <div class="waiting-user-info">
-                            <div class="participant-avatar-small">${user.avatar}</div>
-                            <div>
-                                <div class="participant-name">${user.name}</div>
-                                <div class="participant-status waiting">
-                                    <i class="fas fa-clock"></i> Ожидает
-                                </div>
-                            </div>
-                        </div>
-                        ${callState.isHost ? `
-                        <div class="waiting-actions">
-                            <button class="action-btn accept-btn" onclick="acceptUser('${user.id}')">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="action-btn reject-btn" onclick="rejectUser('${user.id}')">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-                waitingList.innerHTML += waitingUserHTML;
-            });
-        }
-
-        function acceptUser(userId) {
-            const user = callState.waitingUsers.find(u => u.id === userId);
-            if (user) {
-                callState.waitingUsers = callState.waitingUsers.filter(u => u.id !== userId);
-                addParticipant(user, false);
-                updateWaitingRoomUI();
-                showNotification(`${user.name} присоединился к звонку`, 'success');
-            }
-        }
-
-        function rejectUser(userId) {
-            const user = callState.waitingUsers.find(u => u.id === userId);
-            if (user) {
-                callState.waitingUsers = callState.waitingUsers.filter(u => u.id !== userId);
-                updateWaitingRoomUI();
-                showNotification(`${user.name} отклонен`, 'error');
-            }
-        }
-
-        function addParticipant(user, isCurrentUser) {
-            const participantsList = document.getElementById('participantsList');
-            
-            const participantItemHTML = `
-                <div class="participant-item">
+    callState.waitingUsers.forEach(user => {
+        const waitingUserHTML = `
+            <div class="waiting-user">
+                <div class="waiting-user-info">
                     <div class="participant-avatar-small">${user.avatar}</div>
-                    <div class="participant-details">
-                        <div class="participant-name">
-                            ${isCurrentUser ? 'Вы' : user.name}
-                            ${isCurrentUser ? '<span class="status-indicator status-online"></span>' : ''}
-                        </div>
-                        <div class="participant-status ${isCurrentUser && callState.isMuted ? 'muted' : ''}">
-                            <i class="fas fa-circle"></i>
-                            ${isCurrentUser ? (callState.isMuted ? 'Микрофон выключен' : 'В сети') : 'В сети'}
+                    <div>
+                        <div class="participant-name">${user.name}</div>
+                        <div class="participant-status waiting">
+                            <i class="fas fa-clock"></i> Ожидает
                         </div>
                     </div>
                 </div>
-            `;
-            
-            participantsList.insertAdjacentHTML('beforeend', participantItemHTML);
-            
-            if (!isCurrentUser) {
-                showNotification(`${user.name} присоединился к звонку`, 'success');
-            }
-        }
-
-        function setupEventListeners() {
-            // Табы
-            document.querySelectorAll('.sidebar-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabName = this.dataset.tab;
-                    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.remove('active');
-                    });
-                    document.getElementById(tabName + 'Tab').classList.add('active');
-                });
-            });
-
-            // Кнопки управления
-            document.getElementById('micBtn').addEventListener('click', toggleMicrophone);
-            document.getElementById('cameraBtn').addEventListener('click', toggleCamera);
-            document.getElementById('screenShareBtn').addEventListener('click', toggleScreenShare);
-            document.getElementById('endCallBtn').addEventListener('click', showEndCallModal);
-
-            // Кнопки шапки
-            document.getElementById('shareLinkBtn').addEventListener('click', showShareModal);
-            document.getElementById('waitingRoomBtn').addEventListener('click', () => {
-                document.querySelector('[data-tab="waiting"]').click();
-            });
-
-            // Чат
-            document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
-            document.getElementById('chatInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') sendMessage();
-            });
-
-            // Комната ожидания
-            document.getElementById('waitingRoomToggle').addEventListener('change', function() {
-                callState.waitingRoomEnabled = this.checked;
-                showNotification(this.checked ? 'Комната ожидания включена' : 'Комната ожидания отключена', 'warning');
-            });
-
-            // Модалки
-            document.getElementById('confirmEndCall').addEventListener('click', endCall);
-            document.getElementById('cancelEndCall').addEventListener('click', hideEndCallModal);
-            document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
-            document.getElementById('closeShareModal').addEventListener('click', hideShareModal);
-
-            // Реакции
-            document.querySelectorAll('.reaction-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    showReaction(this.textContent);
-                });
-            });
-        }
-
-        function toggleScreenShare() {
-            // Заглушка для демонстрации экрана
-            showNotification('Демонстрация экрана будет доступна в полной версии', 'warning');
-        }
-
-        function showShareModal() {
-            const currentUrl = window.location.href.split('?')[0] + `?id=${callState.callId}`;
-            document.getElementById('shareLinkInput').value = currentUrl;
-            document.getElementById('shareModal').style.display = 'flex';
-        }
-
-        function hideShareModal() {
-            document.getElementById('shareModal').style.display = 'none';
-        }
-
-        function showEndCallModal() {
-            document.getElementById('endCallModal').style.display = 'flex';
-        }
-
-        function hideEndCallModal() {
-            document.getElementById('endCallModal').style.display = 'none';
-        }
-
-        function copyShareLink() {
-            const linkInput = document.getElementById('shareLinkInput');
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                showNotification('Ссылка скопирована!', 'success');
-            });
-        }
-
-        function startTimer() {
-            callState.timerInterval = setInterval(() => {
-                callState.timer++;
-                updateTimerDisplay();
-            }, 1000);
-        }
-
-        function updateTimerDisplay() {
-            const minutes = Math.floor(callState.timer / 60).toString().padStart(2, '0');
-            const seconds = (callState.timer % 60).toString().padStart(2, '0');
-            document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
-        }
-
-        function updateCurrentTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = 
-                now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-        }
-
-        function sendMessage() {
-            const chatInput = document.getElementById('chatInput');
-            const message = chatInput.value.trim();
-            
-            if (message) {
-                const chatMessages = document.getElementById('chatMessages');
-                const user = auth.currentUser;
-                const userName = user.displayName || 'Вы';
-                
-                const messageHTML = `
-                    <div class="message own">
-                        <div class="message-sender">${userName}</div>
-                        <div class="message-text">${message}</div>
-                        <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</div>
-                    </div>
-                `;
-                
-                chatMessages.insertAdjacentHTML('beforeend', messageHTML);
-                chatInput.value = '';
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
-
-        function showReaction(reaction) {
-            const reactionElement = document.createElement('div');
-            reactionElement.textContent = reaction;
-            reactionElement.style.cssText = `
-                position: fixed;
-                font-size: 2rem;
-                z-index: 1000;
-                animation: floatUp 1.5s ease-out forwards;
-                pointer-events: none;
-            `;
-            
-            const x = Math.random() * window.innerWidth * 0.6 + window.innerWidth * 0.2;
-            reactionElement.style.left = x + 'px';
-            reactionElement.style.bottom = '100px';
-            
-            document.body.appendChild(reactionElement);
-            
-            setTimeout(() => {
-                reactionElement.remove();
-            }, 1500);
-        }
-
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        function showAuthModal() {
-            const modalHTML = `
-                <div class="modal-overlay" id="authModal">
-                    <div class="modal-content">
-                        <h3 style="margin-bottom: 10px; color: var(--accent);">Требуется авторизация</h3>
-                        <p style="margin-bottom: 20px; color: #ccc;">Для участия в звонке необходимо войти в систему</p>
-                        <div class="modal-actions">
-                            <button class="btn primary" onclick="window.location.href='auth.html'">
-                                <i class="fas fa-sign-in-alt"></i> Войти
-                            </button>
-                            <button class="btn secondary" onclick="window.location.href='index.html'">
-                                На главную
-                            </button>
-                        </div>
-                    </div>
+                ${callState.isHost ? `
+                <div class="waiting-actions">
+                    <button class="action-btn accept-btn" onclick="acceptUser('${user.id}')">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="action-btn reject-btn" onclick="rejectUser('${user.id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-        }
+                ` : ''}
+            </div>
+        `;
+        waitingList.innerHTML += waitingUserHTML;
+    });
+}
 
-        function generateCallId() {
-            return Math.random().toString(36).substring(2, 10);
+function acceptUser(userId) {
+    const user = callState.waitingUsers.find(u => u.id === userId);
+    if (user) {
+        callState.waitingUsers = callState.waitingUsers.filter(u => u.id !== userId);
+        
+        // Добавляем в участники
+        const savedCall = localStorage.getItem(`call_${callState.callId}`);
+        if (savedCall) {
+            const callData = JSON.parse(savedCall);
+            callData.participants.push(user);
+            callData.waitingUsers = callData.waitingUsers.filter(u => u.id !== userId);
+            localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
         }
+        
+        addParticipant(user, false);
+        updateWaitingRoomUI();
+        showNotification(`${user.name} присоединился к звонку`, 'success');
+    }
+}
 
-        function updateCallParticipants(participants) {
-            const savedCall = localStorage.getItem(`call_${callState.callId}`);
-            if (savedCall) {
-                const callData = JSON.parse(savedCall);
-                callData.participants = participants;
-                localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
-            }
+function rejectUser(userId) {
+    const user = callState.waitingUsers.find(u => u.id === userId);
+    if (user) {
+        callState.waitingUsers = callState.waitingUsers.filter(u => u.id !== userId);
+        
+        // Удаляем из ожидания
+        const savedCall = localStorage.getItem(`call_${callState.callId}`);
+        if (savedCall) {
+            const callData = JSON.parse(savedCall);
+            callData.waitingUsers = callData.waitingUsers.filter(u => u.id !== userId);
+            localStorage.setItem(`call_${callState.callId}`, JSON.stringify(callData));
         }
+        
+        updateWaitingRoomUI();
+        showNotification(`${user.name} отклонен`, 'error');
+    }
+}
 
-        function endCall() {
-            // Останавливаем медиа потоки
-            if (callState.localStream) {
-                callState.localStream.getTracks().forEach(track => track.stop());
-            }
-            
-            clearInterval(callState.timerInterval);
-            showNotification('Звонок завершен', 'success');
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
-        }
+function addLocalVideoStream() {
+    const videoGrid = document.getElementById('videoGrid');
+    const videoElement = document.createElement('video');
+    videoElement.id = 'localVideo';
+    videoElement.className = 'participant-video local-video';
+    videoElement.autoplay = true;
+    videoElement.muted = true;
+    videoElement.playsInline = true;
+    videoElement.srcObject = callState.localStream;
+
+    const participantHTML = `
+        <div class="video-participant ${callState.isMuted ? 'muted' : 'active'}" id="localParticipant">
+            ${videoElement.outerHTML}
+            <div class="device-status">
+                <div class="device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}">
+                    <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
+                </div>
+                <div class="device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}">
+                    <i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>
+                </div>
+            </div>
+            <div class="participant-info">
+                <span class="status-indicator ${callState.isMuted ? 'status-muted' : 'status-online'}"></span>
+                <span>Вы</span>
+                <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
+            </div>
+        </div>
+    `;
+
+    videoGrid.innerHTML = participantHTML;
+}
+
+function addParticipantPlaceholder() {
+    const videoGrid = document.getElementById('videoGrid');
+    const user = auth.currentUser || { displayName: 'Гость', email: 'guest@pingr.com' };
+    const participantHTML = `
+        <div class="video-participant ${callState.isMuted ? 'muted' : 'active'}" id="localParticipant">
+            <div class="participant-avatar">${(user.displayName || user.email).charAt(0).toUpperCase()}</div>
+            <div class="device-status">
+                <div class="device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}">
+                    <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
+                </div>
+                <div class="device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}">
+                    <i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>
+                </div>
+            </div>
+            <div class="participant-info">
+                <span class="status-indicator ${callState.isMuted ? 'status-muted' : 'status-online'}"></span>
+                <span>Вы</span>
+                <i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>
+            </div>
+        </div>
+    `;
+    videoGrid.innerHTML = participantHTML;
+}
+
+function updateMicrophoneButton() {
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = micBtn.querySelector('i');
+    
+    if (!callState.hasMicrophone) {
+        micBtn.classList.add('mic-off');
+        micBtn.disabled = true;
+        micBtn.setAttribute('data-tooltip', 'Микрофон недоступен');
+        micIcon.className = 'fas fa-microphone-slash';
+        return;
+    }
+
+    if (callState.isMuted) {
+        micBtn.classList.add('mic-off');
+        micBtn.classList.remove('secondary');
+        micBtn.setAttribute('data-tooltip', 'Включить микрофон');
+        micIcon.className = 'fas fa-microphone-slash';
+    } else {
+        micBtn.classList.remove('mic-off');
+        micBtn.classList.add('secondary');
+        micBtn.setAttribute('data-tooltip', 'Выключить микрофон');
+        micIcon.className = 'fas fa-microphone';
+    }
+}
+
+function updateCameraButton() {
+    const cameraBtn = document.getElementById('cameraBtn');
+    const cameraIcon = cameraBtn.querySelector('i');
+    
+    if (!callState.hasCamera) {
+        cameraBtn.classList.add('camera-off');
+        cameraBtn.disabled = true;
+        cameraBtn.setAttribute('data-tooltip', 'Камера недоступна');
+        cameraIcon.className = 'fas fa-video-slash';
+        return;
+    }
+
+    if (callState.isVideoOn) {
+        cameraBtn.classList.remove('camera-off');
+        cameraBtn.classList.add('secondary');
+        cameraBtn.setAttribute('data-tooltip', 'Выключить камеру');
+        cameraIcon.className = 'fas fa-video';
+    } else {
+        cameraBtn.classList.add('camera-off');
+        cameraBtn.classList.remove('secondary');
+        cameraBtn.setAttribute('data-tooltip', 'Включить камеру');
+        cameraIcon.className = 'fas fa-video-slash';
+    }
+}
+
+function toggleMicrophone() {
+    if (!callState.hasMicrophone) return;
+
+    if (callState.localStream) {
+        const audioTracks = callState.localStream.getAudioTracks();
+        audioTracks.forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        callState.isMuted = !audioTracks[0].enabled;
+    } else {
+        callState.isMuted = !callState.isMuted;
+    }
+
+    updateMicrophoneButton();
+    updateLocalParticipantUI();
+    showNotification(callState.isMuted ? 'Микрофон выключен' : 'Микрофон включен');
+}
+
+function toggleCamera() {
+    if (!callState.hasCamera) return;
+
+    if (callState.localStream) {
+        const videoTracks = callState.localStream.getVideoTracks();
+        videoTracks.forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        callState.isVideoOn = !videoTracks[0].enabled;
+    } else {
+        callState.isVideoOn = !callState.isVideoOn;
+    }
+
+    updateCameraButton();
+    updateLocalParticipantUI();
+    showNotification(callState.isVideoOn ? 'Камера включена' : 'Камера выключена');
+}
+
+function updateLocalParticipantUI() {
+    const localParticipant = document.getElementById('localParticipant');
+    if (!localParticipant) return;
+
+    const statusIndicator = localParticipant.querySelector('.status-indicator');
+    const micIcon = localParticipant.querySelector('.participant-info i');
+    const deviceMicIcon = localParticipant.querySelector('.device-status .device-icon.mic-on, .device-status .device-icon.mic-off');
+    const deviceCameraIcon = localParticipant.querySelector('.device-status .device-icon.camera-on, .device-status .device-icon.camera-off');
+
+    if (statusIndicator) {
+        statusIndicator.className = `status-indicator ${callState.isMuted ? 'status-muted' : 'status-online'}`;
+    }
+
+    if (micIcon) {
+        micIcon.className = `fas fa-microphone${callState.isMuted ? '-slash' : ''}`;
+    }
+
+    if (deviceMicIcon) {
+        deviceMicIcon.className = `device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}`;
+        deviceMicIcon.innerHTML = `<i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>`;
+    }
+
+    if (deviceCameraIcon) {
+        deviceCameraIcon.className = `device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}`;
+        deviceCameraIcon.innerHTML = `<i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>`;
+    }
+
+    localParticipant.className = `video-participant ${callState.isMuted ? 'muted' : 'active'}`;
+}
+
+function addParticipant(user, isCurrentUser) {
+    const participantsList = document.getElementById('participantsList');
+    
+    const participantItemHTML = `
+        <div class="participant-item">
+            <div class="participant-avatar-small">${user.avatar}</div>
+            <div class="participant-details">
+                <div class="participant-name">
+                    ${isCurrentUser ? 'Вы' : user.name}
+                    ${isCurrentUser ? '<span class="status-indicator status-online"></span>' : ''}
+                </div>
+                <div class="participant-status ${isCurrentUser && callState.isMuted ? 'muted' : ''}">
+                    <i class="fas fa-circle"></i>
+                    ${isCurrentUser ? (callState.isMuted ? 'Микрофон выключен' : 'В сети') : 'В сети'}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    participantsList.insertAdjacentHTML('beforeend', participantItemHTML);
+    
+    if (!isCurrentUser) {
+        showNotification(`${user.name} присоединился к звонку`, 'success');
+    }
+}
+
+function setupEventListeners() {
+    document.querySelectorAll('.sidebar-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.dataset.tab;
+            document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        });
+    });
+
+    document.getElementById('micBtn').addEventListener('click', toggleMicrophone);
+    document.getElementById('cameraBtn').addEventListener('click', toggleCamera);
+    document.getElementById('screenShareBtn').addEventListener('click', toggleScreenShare);
+    document.getElementById('endCallBtn').addEventListener('click', showEndCallModal);
+
+    document.getElementById('shareLinkBtn').addEventListener('click', showShareModal);
+    document.getElementById('waitingRoomBtn').addEventListener('click', () => {
+        document.querySelector('[data-tab="waiting"]').click();
+    });
+
+    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+    document.getElementById('chatInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    document.getElementById('waitingRoomToggle').addEventListener('change', function() {
+        callState.waitingRoomEnabled = this.checked;
+        showNotification(this.checked ? 'Комната ожидания включена' : 'Комната ожидания отключена', 'warning');
+    });
+
+    document.getElementById('confirmEndCall').addEventListener('click', endCall);
+    document.getElementById('cancelEndCall').addEventListener('click', hideEndCallModal);
+    document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
+    document.getElementById('closeShareModal').addEventListener('click', hideShareModal);
+
+    document.querySelectorAll('.reaction-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            showReaction(this.textContent);
+        });
+    });
+}
+
+function toggleScreenShare() {
+    showNotification('Демонстрация экрана будет доступна в полной версии', 'warning');
+}
+
+function showShareModal() {
+    const currentUrl = window.location.href.split('?')[0] + `?id=${callState.callId}`;
+    document.getElementById('shareLinkInput').value = currentUrl;
+    document.getElementById('shareModal').style.display = 'flex';
+}
+
+function hideShareModal() {
+    document.getElementById('shareModal').style.display = 'none';
+}
+
+function showEndCallModal() {
+    document.getElementById('endCallModal').style.display = 'flex';
+}
+
+function hideEndCallModal() {
+    document.getElementById('endCallModal').style.display = 'none';
+}
+
+function copyShareLink() {
+    const linkInput = document.getElementById('shareLinkInput');
+    linkInput.select();
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+        showNotification('Ссылка скопирована!', 'success');
+    });
+}
+
+function startTimer() {
+    callState.timerInterval = setInterval(() => {
+        callState.timer++;
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(callState.timer / 60).toString().padStart(2, '0');
+    const seconds = (callState.timer % 60).toString().padStart(2, '0');
+    document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+}
+
+function updateCurrentTime() {
+    const now = new Date();
+    document.getElementById('currentTime').textContent = 
+        now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+}
+
+function sendMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+    
+    if (message) {
+        const chatMessages = document.getElementById('chatMessages');
+        const user = auth.currentUser || { displayName: 'Гость' };
+        const userName = user.displayName || 'Вы';
+        
+        const messageHTML = `
+            <div class="message own">
+                <div class="message-sender">${userName}</div>
+                <div class="message-text">${message}</div>
+                <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</div>
+            </div>
+        `;
+        
+        chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+        chatInput.value = '';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function showReaction(reaction) {
+    const reactionElement = document.createElement('div');
+    reactionElement.textContent = reaction;
+    reactionElement.style.cssText = `
+        position: fixed;
+        font-size: 2rem;
+        z-index: 1000;
+        animation: floatUp 1.5s ease-out forwards;
+        pointer-events: none;
+    `;
+    
+    const x = Math.random() * window.innerWidth * 0.6 + window.innerWidth * 0.2;
+    reactionElement.style.left = x + 'px';
+    reactionElement.style.bottom = '100px';
+    
+    document.body.appendChild(reactionElement);
+    
+    setTimeout(() => {
+        reactionElement.remove();
+    }, 1500);
+}
+
+function showNotification(message, type = 'success') {
+    console.log('Notification:', message, type);
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function generateCallId() {
+    return Math.random().toString(36).substring(2, 10);
+}
+
+function endCall() {
+    if (callState.localStream) {
+        callState.localStream.getTracks().forEach(track => track.stop());
+    }
+    
+    clearInterval(callState.timerInterval);
+    showNotification('Звонок завершен', 'success');
+    
+    setTimeout(() => {
+        window.location.href = 'index.html';
+    }, 1000);
+}
     </script>
 </body>
 </html>
