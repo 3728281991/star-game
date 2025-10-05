@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статус системы - Pingr</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --accent: #ff4d8d;
+            --light: #ffffff;
+            --dark: #333333;
+            --gray: #f5f5f5;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+
+        body {
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            padding-top: 80px;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--light);
+            width: 100%;
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            height: 80px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 14px;
+        }
+
+        .login-btn {
+            background-color: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .login-btn:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .register-btn {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .register-btn:hover {
+            background-color: #5a0db8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(106, 17, 203, 0.3);
+        }
+
+        .user-menu {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            padding: 10px 0;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .user-menu:hover .user-dropdown {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray);
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            color: var(--primary);
+        }
+
+        /* Status Page Styles */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 80px 5% 60px;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .page-header p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+
+        .status-content {
+            padding: 80px 5%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .status-overview {
+            background: var(--light);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-operational {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success);
+            border: 2px solid var(--success);
+        }
+
+        .status-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--warning);
+            border: 2px solid var(--warning);
+        }
+
+        .status-critical {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+            border: 2px solid var(--danger);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .dot-operational { background: var(--success); }
+        .dot-warning { background: var(--warning); }
+        .dot-critical { background: var(--danger); }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .service-card {
+            background: var(--light);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--success);
+        }
+
+        .service-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .service-card.critical {
+            border-left-color: var(--danger);
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .service-name {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .service-status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-up { background: rgba(40, 167, 69, 0.1); color: var(--success); }
+        .status-down { background: rgba(220, 53, 69, 0.1); color: var(--danger); }
+        .status-degraded { background: rgba(255, 193, 7, 0.1); color: var(--warning); }
+
+        .incidents-section {
+            margin-top: 60px;
+        }
+
+        .incident-item {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            border-left: 4px solid var(--warning);
+        }
+
+        .incident-item.resolved {
+            border-left-color: var(--success);
+            opacity: 0.7;
+        }
+
+        .incident-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .incident-title {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .incident-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .incident-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 40px auto 0;
+        }
+
+        .refresh-btn:hover {
+            background: #5a0db8;
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 50px 5% 30px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            gap: 40px;
+        }
+
+        .footer-section {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .footer-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        .footer-links a {
+            display: block;
+            color: #ccc;
+            margin-bottom: 10px;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-icons a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .social-icons a:hover {
+            background-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            body { padding-top: 70px; }
+            header { height: 70px; padding: 10px 5%; }
+            .page-header { padding: 60px 5% 40px; }
+            .page-header h1 { font-size: 2.2rem; }
+            .status-content { padding: 40px 5%; }
+            .services-grid { grid-template-columns: 1fr; }
+            .service-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .footer-content { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">Pingr</a>
+        <div class="nav-buttons">
+            <button class="btn login-btn" onclick="window.location.href='login.html'">Войти</button>
+            <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
+        </div>
+        <div class="user-menu" id="userMenu">
+            <div class="user-avatar" id="userAvatar">
+                <span id="userInitial">U</span>
+            </div>
+            <span class="user-name" id="userName">Пользователь</span>
+            <div class="user-dropdown">
+                <a href="profile.html" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
+                <a href="settings.html" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
+                <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="page-header">
+        <h1>Статус системы</h1>
+        <p>Актуальная информация о работе сервисов Pingr</p>
+    </section>
+
+    <section class="status-content">
+        <div class="status-overview">
+            <div class="status-indicator status-operational">
+                <div class="status-dot dot-operational"></div>
+                Все системы работают нормально
+            </div>
+            <p>Последнее обновление: <span id="lastUpdate">15 января 2025, 14:30 МСК</span></p>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Видеозвонки</div>
+                    <div class="service-status status-up">Работает</div>
+                </div>
+                <p>Создание и проведение видеозвонков</p>
+                <small>Время отклика: 45 мс</small>
+            </div>
+
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">AI-резюме</div>
+                    <div class="service-status status-up">Работает</div>
+                </div>
+                <p>Автоматическое создание резюме звонков</p>
+                <small>Обработка: 2-3 секунды</small>
+            </div>
+
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Аудио сервис</div>
+                    <div class="service-status status-up">Работает</div>
+                </div>
+                <p>Обработка и передача аудио</p>
+                <small>Качество: отличное</small>
+            </div>
+
+            <div class="service-card warning">
+                <div class="service-header">
+                    <div class="service-name">Файловое хранилище</div>
+                    <div class="service-status status-degraded">Частичный сбой</div>
+                </div>
+                <p>Загрузка и хранение файлов</p>
+                <small>Временные задержки при загрузке</small>
+            </div>
+
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">База данных</div>
+                    <div class="service-status status-up">Работает</div>
+                </div>
+                <p>Хранение пользовательских данных</p>
+                <small>Нагрузка: нормальная</small>
+            </div>
+
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">API</div>
+                    <div class="service-status status-up">Работает</div>
+                </div>
+                <p>Программные интерфейсы</p>
+                <small>Доступность: 99.9%</small>
+            </div>
+        </div>
+
+        <div class="incidents-section">
+            <h2 style="color: var(--primary); margin-bottom: 30px; text-align: center;">Последние инциденты</h2>
+            
+            <div class="incident-item resolved">
+                <div class="incident-header">
+                    <div class="incident-title">Плановое техническое обслуживание</div>
+                    <div class="incident-date">14 января, 03:00-05:00 МСК</div>
+                </div>
+                <div class="incident-description">
+                    Проведено плановое обновление систем безопасности. Сервис был временно недоступен.
+                </div>
+            </div>
+
+            <div class="incident-item resolved">
+                <div class="incident-header">
+                    <div class="incident-title">Повышенная нагрузка на серверы</div>
+                    <div class="incident-date">12 января, 10:00-12:30 МСК</div>
+                </div>
+                <div class="incident-description">
+                    Временное замедление работы из-за повышенной нагрузки. Проблема решена масштабированием инфраструктуры.
+                </div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> Обновить статус
+        </button>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Pingr</h3>
+                <p>Быстрые звонки для людей, которым важен результат.</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Ссылки</h3>
+                <div class="footer-links">
+                    <a href="about.html">О нас</a>
+                    <a href="contact.html">Контакты</a>
+                    <a href="privacy.html">Политика конфиденциальности</a>
+                    <a href="terms.html">Условия использования</a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Поддержка</h3>
+                <div class="footer-links">
+                    <a href="help-center.html">Центр помощи</a>
+                    <a href="report-problem.html">Сообщить о проблеме</a>
+                    <a href="status.html">Статус системы</a>
+                    <a href="feedback.html">Обратная связь</a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2025 Pingr. Все права защищены.
+        </div>
+    </footer>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
+            authDomain: "video-call-94d0b.firebaseapp.com",
+            projectId: "video-call-94d0b",
+            storageBucket: "video-call-94d0b.firebasestorage.app",
+            messagingSenderId: "973586453149",
+            appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
+            measurementId: "G-TVLP5WTJGP"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        auth.onAuthStateChanged((user) => {
+            const userMenu = document.getElementById('userMenu');
+            const navButtons = document.querySelector('.nav-buttons');
+            
+            if (user) {
+                navButtons.style.display = 'none';
+                userMenu.style.display = 'flex';
+                document.getElementById('userName').textContent = user.displayName || user.email;
+                document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
+            } else {
+                navButtons.style.display = 'flex';
+                userMenu.style.display = 'none';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            auth.signOut().then(() => {
+                window.location.reload();
+            });
+        });
+
+        // Refresh status
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обновление...';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить статус';
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent = 
+                    `${now.toLocaleDateString('ru-RU')}, ${now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})} МСК`;
+                alert('Статус системы обновлен!');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
