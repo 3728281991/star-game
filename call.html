@@ -1012,13 +1012,64 @@
                     video: true,
                     audio: true
                 });
+                
+                createLocalVideoElement();
                 showNotification('Камера и микрофон подключены');
+                
             } catch (error) {
                 console.warn('⚠️ Не удалось получить доступ к медиа устройствам:', error);
+                createLocalAvatarElement();
                 showNotification('Используется режим без камеры и микрофона', 'warning');
             }
             
             updateControlButtons();
+        }
+
+        function createLocalVideoElement() {
+            const videoGrid = document.getElementById('videoGrid');
+            videoGrid.innerHTML = `
+                <div class="video-participant active" id="localParticipant">
+                    <video class="participant-video local-video" autoplay muted playsinline></video>
+                    <div class="participant-info">
+                        <span class="status-indicator status-online"></span>
+                        <span>Вы</span>
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <div class="device-status">
+                        <div class="device-icon mic-on">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <div class="device-icon camera-on">
+                            <i class="fas fa-video"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const video = videoGrid.querySelector('video');
+            video.srcObject = appState.localStream;
+        }
+
+        function createLocalAvatarElement() {
+            const videoGrid = document.getElementById('videoGrid');
+            videoGrid.innerHTML = `
+                <div class="video-participant muted" id="localParticipant">
+                    <div class="participant-avatar">В</div>
+                    <div class="participant-info">
+                        <span class="status-indicator status-muted"></span>
+                        <span>Вы</span>
+                        <i class="fas fa-microphone-slash"></i>
+                    </div>
+                    <div class="device-status">
+                        <div class="device-icon mic-off">
+                            <i class="fas fa-microphone-slash"></i>
+                        </div>
+                        <div class="device-icon camera-off">
+                            <i class="fas fa-video-slash"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // 3. Инициализация пользователя
@@ -1031,6 +1082,7 @@
                         appState.currentUser = {
                             id: user.uid,
                             name: user.displayName || user.email.split('@')[0],
+                            email: user.email,
                             avatar: (user.displayName || user.email).charAt(0).toUpperCase(),
                             isGuest: false
                         };
@@ -1044,6 +1096,7 @@
                                 appState.currentUser = {
                                     id: anonUser.uid,
                                     name: `Гость ${Math.floor(Math.random() * 10000)}`,
+                                    email: 'guest@pingr.com',
                                     avatar: 'Г',
                                     isGuest: true
                                 };
@@ -1056,6 +1109,7 @@
                                 appState.currentUser = {
                                     id: 'guest_' + Date.now(),
                                     name: 'Гость',
+                                    email: 'guest@pingr.com',
                                     avatar: 'Г',
                                     isGuest: true
                                 };
@@ -1069,11 +1123,52 @@
         // 4. Инициализация звонка
         async function initializeCall() {
             if (!appState.callId) return;
-            if (appState.isHost) {
+            const callRef = database.ref(`calls/${appState.callId}`);
+            const snapshot = await callRef.once('value');
+            let data = snapshot.val();
+
+            if (!data) {
+                appState.isHost = true;
                 await createCall();
-            } else {
-                await joinCall();
+                return;
             }
+
+            appState.hostId = data.host;
+            appState.settings = data.settings || { waitingRoom: true };
+
+            const userId = appState.currentUser.id;
+            const participants = data.participants || {};
+            const waitingUsers = data.waitingUsers || {};
+            const inParticipants = !!participants[userId];
+            const inWaiting = !!waitingUsers[userId];
+
+            if (appState.currentUser.id === appState.hostId) {
+                appState.isHost = true;
+                appState.participants = Object.values(participants);
+                appState.waitingUsers = Object.values(waitingUsers);
+                updateTitle();
+                updateParticipantsUI();
+                updateWaitingUI();
+                return;
+            }
+
+            if (!inParticipants && !inWaiting) {
+                if (appState.settings.waitingRoom) {
+                    await callRef.child('waitingUsers').child(userId).set(appState.currentUser);
+                    showNotification('Ожидайте подтверждения от организатора', 'warning');
+                } else {
+                    await callRef.child('participants').child(userId).set(appState.currentUser);
+                    showNotification(`Вы присоединились к звонку`);
+                }
+            } else if (inWaiting) {
+                showNotification('Вы в комнате ожидания');
+            } else {
+                showNotification('Вы присоединились к звонку');
+            }
+
+            updateTitle();
+            updateParticipantsUI();
+            updateWaitingUI();
         }
 
         async function createCall() {
@@ -1097,58 +1192,10 @@
             updateTitle();
             updateParticipantsUI();
             updateWaitingUI();
-            updateVideoGrid();
+            createLocalVideoElement();
 
             showNotification('Вы создали новый звонок! Поделитесь ссылкой.');
             console.log('🏠 Создан звонок:', appState.callId);
-        }
-
-        async function joinCall() {
-            const callRef = database.ref(`calls/${appState.callId}`);
-            const snapshot = await callRef.once('value');
-            let data = snapshot.val();
-
-            if (!data) {
-                appState.isHost = true;
-                await createCall();
-                return;
-            }
-
-            appState.hostId = data.host;
-            appState.settings = data.settings || { waitingRoom: true };
-
-            const userId = appState.currentUser.id;
-            const participants = data.participants || {};
-            const waitingUsers = data.waitingUsers || {};
-            const inParticipants = !!participants[userId];
-            const inWaiting = !!waitingUsers[userId];
-
-            if (!inParticipants && !inWaiting) {
-                if (appState.settings.waitingRoom) {
-                    await callRef.child('waitingUsers').child(userId).set(appState.currentUser);
-                    appState.waitingUsers = [...Object.values(waitingUsers), appState.currentUser];
-                    showNotification('Ожидайте подтверждения от организатора', 'warning');
-                } else {
-                    await callRef.child('participants').child(userId).set(appState.currentUser);
-                    appState.participants = [...Object.values(participants), appState.currentUser];
-                    showNotification('Вы присоединились к звонку');
-                }
-            } else if (inWaiting) {
-                appState.waitingUsers = Object.values(waitingUsers);
-                showNotification('Вы в комнате ожидания');
-            } else {
-                appState.participants = Object.values(participants);
-                showNotification('Вы уже в звонке');
-            }
-
-            appState.participants = Object.values(participants);
-            appState.waitingUsers = Object.values(waitingUsers);
-            updateTitle();
-            updateParticipantsUI();
-            updateWaitingUI();
-            updateVideoGrid();
-
-            console.log('✅ Присоединение к звонку:', appState.callId);
         }
 
         // Слушатель базы данных
@@ -1185,7 +1232,7 @@
                 updateTitle();
                 updateParticipantsUI();
                 updateWaitingUI();
-                updateVideoGrid();
+                updateLocalParticipantUI();
 
                 // Обновляем чекбокс
                 const toggle = document.getElementById('waitingRoomToggle');
@@ -1209,7 +1256,7 @@
 
         // Обновление интерфейса
         function updateTitle() {
-            const hostUser = appState.participants.find(p => p.id === appState.hostId);
+            const hostUser = appState.participants.find(p => p.id === appState.hostId) || appState.currentUser;
             const hostName = hostUser ? hostUser.name : appState.callId.substring(0, 6);
             document.getElementById('callTitle').textContent = `Звонок ${hostName}`;
         }
@@ -1272,87 +1319,38 @@
             `).join('');
         }
 
-        function updateVideoGrid() {
-            const grid = document.getElementById('videoGrid');
-            if (!grid) return;
-            grid.innerHTML = '';
-
-            // Local participant
-            const isLocal = true;
-            const micOn = !appState.isMuted;
-            const videoOn = appState.isVideoOn && !!appState.localStream;
-            let localElement;
-            if (videoOn) {
-                localElement = createVideoParticipant('local', appState.currentUser, micOn, isLocal);
-            } else {
-                localElement = createAvatarParticipant('local', appState.currentUser, micOn, videoOn, isLocal);
+        function updateLocalParticipantUI() {
+            const participant = document.getElementById('localParticipant');
+            if (!participant) return;
+            
+            const statusIndicator = participant.querySelector('.status-indicator');
+            const micIcon = participant.querySelector('.participant-info i');
+            const deviceMic = participant.querySelector('.device-status .device-icon.mic-on, .device-status .device-icon.mic-off');
+            const deviceCamera = participant.querySelector('.device-status .device-icon.camera-on, .device-status .device-icon.camera-off');
+            
+            if (statusIndicator) {
+                statusIndicator.className = `status-indicator ${appState.isMuted ? 'status-muted' : 'status-online'}`;
             }
-            grid.appendChild(localElement);
-
-            // Other participants
-            appState.participants.filter(p => p.id !== appState.currentUser.id).forEach(p => {
-                const element = createAvatarParticipant(p.id, p, true, true, false);
-                grid.appendChild(element);
-            });
-        }
-
-        function createElement(html, callback = null) {
-            const div = document.createElement('div');
-            div.innerHTML = html;
-            const element = div.firstChild;
-            if (callback) callback(element);
-            return element;
-        }
-
-        function createVideoParticipant(id, user, micOn, isLocal) {
-            return createElement(`
-                <div class="video-participant ${!micOn ? 'muted' : 'active'}" id="${id}Participant">
-                    <video class="participant-video local-video" autoplay muted playsinline></video>
-                    <div class="participant-info">
-                        <span class="status-indicator ${!micOn ? 'status-muted' : 'status-online'}"></span>
-                        <span>${user.id === appState.currentUser.id ? 'Вы' : user.name}</span>
-                        <i class="fas fa-microphone${!micOn ? '-slash' : ''}"></i>
-                    </div>
-                    <div class="device-status">
-                        <div class="device-icon ${!micOn ? 'mic-off' : 'mic-on'}">
-                            <i class="fas fa-microphone${!micOn ? '-slash' : ''}"></i>
-                        </div>
-                        <div class="device-icon camera-on">
-                            <i class="fas fa-video"></i>
-                        </div>
-                    </div>
-                </div>
-            `, (el) => {
-                if (isLocal && appState.localStream) {
-                    const video = el.querySelector('video');
-                    video.srcObject = appState.localStream;
-                }
-            });
-        }
-
-        function createAvatarParticipant(id, user, micOn, videoOn, isLocal) {
-            return createElement(`
-                <div class="video-participant ${!micOn ? 'muted' : 'active'}" id="${id}Participant">
-                    <div class="participant-avatar">${user.avatar}</div>
-                    <div class="participant-info">
-                        <span class="status-indicator ${!micOn ? 'status-muted' : 'status-online'}"></span>
-                        <span>${user.id === appState.currentUser.id ? 'Вы' : user.name}</span>
-                        <i class="fas fa-microphone${!micOn ? '-slash' : ''}"></i>
-                    </div>
-                    <div class="device-status">
-                        <div class="device-icon ${!micOn ? 'mic-off' : 'mic-on'}">
-                            <i class="fas fa-microphone${!micOn ? '-slash' : ''}"></i>
-                        </div>
-                        <div class="device-icon ${!videoOn ? 'camera-off' : 'camera-on'}">
-                            <i class="fas fa-video${!videoOn ? '-slash' : ''}"></i>
-                        </div>
-                    </div>
-                </div>
-            `);
+            
+            if (micIcon) {
+                micIcon.className = `fas fa-microphone${appState.isMuted ? '-slash' : ''}`;
+            }
+            
+            if (deviceMic) {
+                deviceMic.className = `device-icon ${appState.isMuted ? 'mic-off' : 'mic-on'}`;
+                deviceMic.innerHTML = `<i class="fas fa-microphone${appState.isMuted ? '-slash' : ''}"></i>`;
+            }
+            
+            if (deviceCamera) {
+                deviceCamera.className = `device-icon ${appState.isVideoOn ? 'camera-on' : 'camera-off'}`;
+                deviceCamera.innerHTML = `<i class="fas fa-video${appState.isVideoOn ? '' : '-slash'}"></i>`;
+            }
+            
+            participant.className = `video-participant ${appState.isMuted ? 'muted' : 'active'}`;
         }
 
         // Функции принятия/отклонения пользователей
-        async function acceptUser(userId) {
+        window.acceptUser = async function(userId) {
             if (!appState.isHost) return;
             const callRef = database.ref(`calls/${appState.callId}`);
             const userSnap = await callRef.child(`waitingUsers/${userId}`).once('value');
@@ -1365,7 +1363,7 @@
             }
         }
 
-        async function rejectUser(userId) {
+        window.rejectUser = async function(userId) {
             if (!appState.isHost) return;
             const callRef = database.ref(`calls/${appState.callId}`);
             await callRef.child(`waitingUsers/${userId}`).remove();
@@ -1377,26 +1375,32 @@
         function toggleMicrophone() {
             if (appState.localStream) {
                 const audioTracks = appState.localStream.getAudioTracks();
-                audioTracks.forEach(track => track.enabled = !track.enabled);
+                audioTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                });
                 appState.isMuted = !audioTracks[0]?.enabled;
             } else {
                 appState.isMuted = !appState.isMuted;
             }
+            
             updateControlButtons();
-            updateVideoGrid();
+            updateLocalParticipantUI();
             showNotification(appState.isMuted ? 'Микрофон выключен' : 'Микрофон включен');
         }
 
         function toggleCamera() {
             if (appState.localStream) {
                 const videoTracks = appState.localStream.getVideoTracks();
-                videoTracks.forEach(track => track.enabled = !track.enabled);
-                appState.isVideoOn = videoTracks[0]?.enabled;
+                videoTracks.forEach(track => {
+                    track.enabled = !track.enabled;
+                });
+                appState.isVideoOn = !videoTracks[0]?.enabled;
             } else {
                 appState.isVideoOn = !appState.isVideoOn;
             }
+            
             updateControlButtons();
-            updateVideoGrid();
+            updateLocalParticipantUI();
             showNotification(appState.isVideoOn ? 'Камера включена' : 'Камера выключена');
         }
 
@@ -1445,6 +1449,7 @@
                 if (!appState.isHost) return;
                 const callRef = database.ref(`calls/${appState.callId}/settings/waitingRoom`);
                 await callRef.set(e.target.checked);
+                showNotification(e.target.checked ? 'Комната ожидания включена' : 'Комната ожидания отключена');
                 if (!e.target.checked) {
                     // Авто-принятие всех ожидающих
                     const waitingRef = database.ref(`calls/${appState.callId}/waitingUsers`);
@@ -1459,8 +1464,6 @@
                         await waitingRef.remove();
                         showNotification('Все ожидающие приняты');
                     }
-                } else {
-                    showNotification('Комната ожидания включена');
                 }
             });
             
@@ -1568,14 +1571,16 @@
         }
 
         function endCallLocal() {
+            // Останавливаем медиа
             if (appState.localStream) {
                 appState.localStream.getTracks().forEach(track => track.stop());
             }
+            
+            // Останавливаем таймеры
             if (appState.timerInterval) clearInterval(appState.timerInterval);
+            
             showNotification('Звонок завершен');
-            setTimeout(() => {
-                window.close() || (window.location.href = '/');
-            }, 1000);
+            setTimeout(() => window.location.href = 'index.html', 1000);
         }
 
         function generateCallId() {
