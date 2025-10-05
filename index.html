@@ -400,6 +400,165 @@
             font-size: 0.9rem;
         }
 
+        /* Стили для модальных окон */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        .modal-header {
+            padding: 25px 30px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .close-modal:hover {
+            color: var(--accent);
+        }
+        
+        .modal-body {
+            padding: 25px 30px;
+        }
+        
+        .link-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        #callLinkInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f9f9f9;
+        }
+        
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #5a0db8;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .modal-actions .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+        }
+        
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background: #ff3d7f;
+        }
+        
+        .secondary-btn {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .secondary-btn:hover {
+            background: #5a0db8;
+        }
+        
+        .outline-btn {
+            background: transparent;
+            color: var(--dark);
+            border: 2px solid #e0e0e0;
+        }
+        
+        .outline-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+            }
+            
+            .link-container {
+                flex-direction: column;
+            }
+        }
+
+        
         /* Responsive */
         /* Мобильная адаптация */
         @media (max-width: 768px) {
@@ -583,6 +742,7 @@
                 font-size: 14px;
             }
         }
+        
         
         /* Горизонтальная ориентация */
         @media (max-height: 500px) and (orientation: landscape) {
@@ -827,6 +987,237 @@
                 });
             });
         });
+
+        document.addEventListener('DOMContentLoaded', function() {
+    const createCallBtn = document.querySelector('.cta-btn');
+    
+    createCallBtn.addEventListener('click', function() {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Пользователь авторизован - создаем звонок
+                createNewCall();
+            } else {
+                // Пользователь не авторизован - предлагаем войти
+                showAuthModal();
+            }
+        });
+    });
+});
+
+// Функция создания нового звонка
+function createNewCall() {
+    // Генерируем уникальный ID для звонка
+    const callId = generateCallId();
+    const callLink = `${window.location.origin}/call.html?id=${callId}`;
+    
+    // Показываем модальное окно со ссылкой
+    showCallLinkModal(callLink);
+}
+
+// Функция показа модального окна со ссылкой
+function showCallLinkModal(link) {
+    const modalHTML = `
+        <div class="modal-overlay" id="callLinkModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Звонок создан! 🎉</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Поделитесь ссылкой с участниками:</p>
+                    <div class="link-container">
+                        <input type="text" value="${link}" id="callLinkInput" readonly>
+                        <button class="copy-btn" id="copyLinkBtn">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn primary-btn" onclick="window.location.href='${link}'">
+                            <i class="fas fa-phone"></i> Присоединиться к звонку
+                        </button>
+                        <button class="btn secondary-btn" onclick="closeModal()">
+                            Позже
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    setupModalEvents();
+}
+
+// Функция показа модального окна авторизации
+function showAuthModal() {
+    const modalHTML = `
+        <div class="modal-overlay" id="authModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Войдите в аккаунт</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Для создания звонка необходимо войти в систему</p>
+                    <div class="modal-actions">
+                        <button class="btn primary-btn" onclick="window.location.href='login.html'">
+                            <i class="fas fa-sign-in-alt"></i> Войти
+                        </button>
+                        <button class="btn secondary-btn" onclick="window.location.href='login.html'">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </button>
+                        <button class="btn outline-btn" onclick="closeModal()">
+                            Отмена
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    setupModalEvents();
+}
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const createCallBtn = document.querySelector('.cta-btn');
+    
+    createCallBtn.addEventListener('click', function() {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Пользователь авторизован - создаем звонок
+                createNewCall();
+            } else {
+                // Пользователь не авторизован - предлагаем войти
+                showAuthModal();
+            }
+        });
+    });
+});
+
+// Функция создания нового звонка
+function createNewCall() {
+    // Генерируем уникальный ID для звонка
+    const callId = generateCallId();
+    const callLink = `${window.location.origin}/call.html?id=${callId}`;
+    
+    // Показываем модальное окно со ссылкой
+    showCallLinkModal(callLink);
+}
+
+// Функция показа модального окна со ссылкой
+function showCallLinkModal(link) {
+    const modalHTML = `
+        <div class="modal-overlay" id="callLinkModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Звонок создан! 🎉</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Поделитесь ссылкой с участниками:</p>
+                    <div class="link-container">
+                        <input type="text" value="${link}" id="callLinkInput" readonly>
+                        <button class="copy-btn" id="copyLinkBtn">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn primary-btn" onclick="window.location.href='${link}'">
+                            <i class="fas fa-phone"></i> Присоединиться к звонку
+                        </button>
+                        <button class="btn secondary-btn" onclick="closeModal()">
+                            Позже
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    setupModalEvents();
+}
+
+// Функция показа модального окна авторизации
+function showAuthModal() {
+    const modalHTML = `
+        <div class="modal-overlay" id="authModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Войдите в аккаунт</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Для создания звонка необходимо войти в систему</p>
+                    <div class="modal-actions">
+                        <button class="btn primary-btn" onclick="window.location.href='login.html'">
+                            <i class="fas fa-sign-in-alt"></i> Войти
+                        </button>
+                        <button class="btn secondary-btn" onclick="window.location.href='login.html'">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </button>
+                        <button class="btn outline-btn" onclick="closeModal()">
+                            Отмена
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    setupModalEvents();
+}
+
+// Вспомогательные функции
+function generateCallId() {
+    return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+}
+
+function setupModalEvents() {
+    const modal = document.querySelector('.modal-overlay');
+    const closeBtn = document.querySelector('.close-modal');
+    const copyBtn = document.getElementById('copyLinkBtn');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyCallLink);
+    }
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+}
+
+function closeModal() {
+    const modal = document.querySelector('.modal-overlay');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function copyCallLink() {
+    const linkInput = document.getElementById('callLinkInput');
+    linkInput.select();
+    document.execCommand('copy');
+    
+    // Показываем подтверждение копирования
+    const copyBtn = document.getElementById('copyLinkBtn');
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+    copyBtn.style.background = '#28a745';
+    
+    setTimeout(() => {
+        copyBtn.innerHTML = originalHTML;
+        copyBtn.style.background = '';
+    }, 2000);
+}
     </script>
 </body>
 </html>
