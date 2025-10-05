@@ -913,13 +913,12 @@
             </div>
         </div>
     </div>
-
-   <script>
+    <script>
 (async function () {
     'use strict';
 
     // =======================
-    // Твоя Firebase-конфигурация
+    // Firebase конфигурация
     // =======================
     const firebaseConfig = {
         apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
@@ -932,58 +931,86 @@
     };
 
     // -----------------------
-    // Compat подгрузка (если нужно)
+    // Инициализация Firebase
     // -----------------------
-    async function ensureFirebaseCompat() {
-        if (window.firebase && firebase.apps && typeof firebase.firestore === 'function') return;
-        const libs = [
+    let firebaseApp, firestore, auth;
+    
+    async function initializeFirebase() {
+        try {
+            // Проверяем, загружены ли Firebase библиотеки
+            if (typeof firebase === 'undefined') {
+                await loadFirebaseScripts();
+            }
+            
+            // Инициализируем Firebase, если еще не инициализирован
+            if (!firebase.apps.length) {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+            } else {
+                firebaseApp = firebase.app();
+            }
+            
+            firestore = firebase.firestore();
+            auth = firebase.auth();
+            
+            console.log('Firebase инициализирован');
+            return true;
+        } catch (error) {
+            console.error('Ошибка инициализации Firebase:', error);
+            return false;
+        }
+    }
+
+    async function loadFirebaseScripts() {
+        const scripts = [
             "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js",
             "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js",
             "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"
         ];
-        for (const src of libs) {
+        
+        for (const src of scripts) {
             if (!document.querySelector(`script[src="${src}"]`)) {
-                await new Promise((res, rej) => {
-                    const s = document.createElement('script');
-                    s.src = src;
-                    s.onload = res;
-                    s.onerror = () => rej(new Error('Не удалось загрузить ' + src));
-                    document.head.appendChild(s);
-                }).catch(e => console.warn(e));
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                }).catch(error => {
+                    console.warn('Не удалось загрузить скрипт:', src, error);
+                });
             }
         }
     }
 
-    await ensureFirebaseCompat();
-
-    // Инициализация Firebase
-    if (!firebase.apps || !firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-        try { if (firebase.analytics) firebase.analytics(); } catch (e) {}
-    }
-    const firestore = firebase.firestore();
-    const auth = firebase.auth ? firebase.auth() : null;
-
     // -----------------------
-    // ICE servers
+    // ICE серверы для WebRTC
     // -----------------------
     const ICE_SERVERS = [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" }
-        // для надёжности добавь TURN если потребуется
     ];
 
     // -----------------------
-    // DOM helpers
+    // DOM утилиты
     // -----------------------
-    const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const createEl = (t, attrs = {}) => { const e = document.createElement(t); Object.entries(attrs).forEach(([k,v])=> { if (k==='text') e.textContent=v; else e.setAttribute(k,v); }); return e; };
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => Array.from(document.querySelectorAll(selector));
+    const createEl = (tag, attrs = {}) => {
+        const element = document.createElement(tag);
+        Object.entries(attrs).forEach(([key, value]) => {
+            if (key === 'text') {
+                element.textContent = value;
+            } else {
+                element.setAttribute(key, value);
+            }
+        });
+        return element;
+    };
 
     // -----------------------
-    // DOM refs (твой HTML- шаблон)
+    // DOM элементы
     // -----------------------
-    const videoGrid = $('#videoGrid') || (() => { const el=createEl('div',{id:'videoGrid'}); document.body.appendChild(el); return el; })();
+    const videoGrid = $('#videoGrid');
     const participantsListEl = $('#participantsList');
     const waitingListEl = $('#waitingList');
     const callTitleEl = $('#callTitle');
@@ -1011,29 +1038,49 @@
 
     const waitingRoomToggle = $('#waitingRoomToggle');
 
-    // Если нет некоторых элементов – создаём минимальные, чтобы не рушилось
+    // Создаем базовые видео элементы если их нет
     function ensureVideoElements() {
-        if (!$('#localParticipant') || !$('#remoteParticipant')) {
+        if (!videoGrid) return;
+        
+        if (!videoGrid.querySelector('#localParticipant')) {
             videoGrid.innerHTML = `
-                <div class="video-participant" id="localParticipant">
-                    <video id="localVideo" autoplay muted playsinline></video>
-                    <div class="participant-info"><span>Вы</span></div>
+                <div class="video-participant active" id="localParticipant">
+                    <div class="participant-avatar">В</div>
+                    <div class="participant-info">
+                        <span class="status-indicator status-online"></span>
+                        <span>Вы</span>
+                    </div>
+                    <div class="device-status">
+                        <div class="device-icon mic-on">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <div class="device-icon camera-on">
+                            <i class="fas fa-video"></i>
+                        </div>
+                    </div>
                 </div>
                 <div class="video-participant" id="remoteParticipant">
-                    <video id="remoteVideo" autoplay playsinline></video>
-                    <div class="participant-info"><span>Собеседник</span></div>
+                    <div class="participant-avatar">С</div>
+                    <div class="participant-info">
+                        <span class="status-indicator status-online"></span>
+                        <span>Собеседник</span>
+                    </div>
                 </div>
             `;
         }
     }
+
     ensureVideoElements();
-    const localVideo = $('#localVideo');
-    const remoteVideo = $('#remoteVideo');
 
     // -----------------------
-    // состояние
+    // Состояние приложения
     // -----------------------
-    const me = { id: null, name: 'Гость', avatar: 'Г' };
+    const me = { 
+        id: null, 
+        name: 'Гость', 
+        avatar: 'Г' 
+    };
+
     const state = {
         localStream: null,
         screenStream: null,
@@ -1050,588 +1097,1083 @@
         callerCandidatesUnsub: null,
         calleeCandidatesUnsub: null,
         timerInterval: null,
-        startedAt: null, // timestamp ms
-        inWaiting: false
+        startedAt: null,
+        inWaiting: false,
+        isMicOn: true,
+        isCameraOn: true
     };
 
     // -----------------------
-    // UI utilities
+    // Утилиты UI
     // -----------------------
-    function notify(text, type='info') {
-        if (typeof window.showNotification === 'function') { try { window.showNotification(text, type); return; } catch(e){} }
-        const n = createEl('div',{});
-        n.textContent = text;
-        n.style.cssText = 'position:fixed;right:12px;top:12px;padding:10px 14px;background:#111;color:#fff;border-radius:8px;z-index:9999';
-        document.body.appendChild(n);
-        setTimeout(()=>n.remove(),3000);
-    }
-
-    function escapeHtml(s){ if (s===undefined || s===null) return ''; return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
-
-    function startTimerFrom(ts) {
-        if (!ts) return;
-        if (state.timerInterval) clearInterval(state.timerInterval);
-        state.startedAt = ts;
-        function update() {
-            const diff = Math.floor((Date.now() - state.startedAt) / 1000);
-            const m = Math.floor(diff/60).toString().padStart(2,'0');
-            const s = (diff%60).toString().padStart(2,'0');
-            if (callTimerEl) callTimerEl.textContent = `${m}:${s}`;
+    function notify(text, type = 'info') {
+        // Используем системные уведомления если доступны
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Pingr', { body: text });
         }
-        update();
-        state.timerInterval = setInterval(update, 1000);
+        
+        // Создаем визуальное уведомление
+        const notification = createEl('div', {
+            class: `notification ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`
+        });
+        notification.textContent = text;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
     }
 
-    function stopTimer() { if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; } }
+    function escapeHtml(text) {
+        if (text === undefined || text === null) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function startTimerFrom(timestamp) {
+        if (!timestamp) return;
+        
+        if (state.timerInterval) {
+            clearInterval(state.timerInterval);
+        }
+        
+        state.startedAt = timestamp;
+        
+        function updateTimer() {
+            const diff = Math.floor((Date.now() - state.startedAt) / 1000);
+            const minutes = Math.floor(diff / 60).toString().padStart(2, '0');
+            const seconds = (diff % 60).toString().padStart(2, '0');
+            
+            if (callTimerEl) {
+                callTimerEl.textContent = `${minutes}:${seconds}`;
+            }
+        }
+        
+        updateTimer();
+        state.timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function stopTimer() {
+        if (state.timerInterval) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+        }
+    }
 
     // -----------------------
-    // Auth: anonymous
+    // Аутентификация (упрощенная)
     // -----------------------
     async function signInAnon() {
         try {
-            if (!auth) { me.id = 'guest_' + Date.now(); return; }
+            // Если Firebase Auth недоступен, используем простой ID
+            if (!auth) {
+                me.id = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                me.name = 'Гость ' + me.id.substr(5, 4);
+                me.avatar = me.name.charAt(0).toUpperCase();
+                return;
+            }
+
+            // Пробуем анонимную аутентификацию
+            await auth.signInAnonymously();
             const user = auth.currentUser;
-            if (!user) await auth.signInAnonymously();
-            me.id = auth.currentUser.uid;
-            me.name = 'Гость';
+            
+            if (user) {
+                me.id = user.uid;
+                me.name = 'Гость ' + me.id.substr(0, 4);
+                me.avatar = me.name.charAt(0).toUpperCase();
+            } else {
+                throw new Error('Не удалось войти анонимно');
+            }
+        } catch (error) {
+            console.warn('Аутентификация не удалась:', error);
+            // Создаем локальный ID как запасной вариант
+            me.id = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            me.name = 'Локальный ' + me.id.substr(6, 4);
             me.avatar = me.name.charAt(0).toUpperCase();
-        } catch (e) {
-            console.warn('auth failed', e);
-            me.id = 'guest_' + Date.now();
+            notify('Используется локальный режим', 'warning');
         }
     }
 
     // -----------------------
-    // local media
+    // Работа с медиа (камера, микрофон)
     // -----------------------
     async function initLocalMedia() {
         try {
-            const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            state.localStream = s;
-            if (localVideo) localVideo.srcObject = s;
-            notify('Камера и микрофон подключены');
-        } catch (e) {
-            console.warn('getUserMedia', e);
-            notify('Не удалось получить камеру/микрофон. Разреши доступ.', 'warning');
-        }
-        updateControlsState();
-    }
-
-    // -----------------------
-    // create pc
-    // -----------------------
-    function createPc() {
-        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-
-        // add local tracks if exist
-        if (state.localStream) state.localStream.getTracks().forEach(t => pc.addTrack(t, state.localStream));
-
-        pc.ontrack = e => {
-            if (remoteVideo && remoteVideo.srcObject !== e.streams[0]) {
-                remoteVideo.srcObject = e.streams[0];
-                notify('Появилось видео собеседника');
+            // Запрашиваем доступ к камере и микрофону
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: true 
+            });
+            
+            state.localStream = stream;
+            state.isMicOn = true;
+            state.isCameraOn = true;
+            
+            // Показываем локальное видео если есть элемент
+            const localVideo = $('#localVideo');
+            if (localVideo) {
+                localVideo.srcObject = stream;
             }
-        };
-
-        pc.onicecandidate = async (ev) => {
-            if (!ev.candidate) return;
-            const cand = ev.candidate.toJSON();
-            try {
-                if (state.isHost) {
-                    await state.callerCandidatesCol.add(cand);
-                } else {
-                    await state.calleeCandidatesCol.add(cand);
-                }
-            } catch (err) { console.warn('write ice', err); }
-        };
-
-        pc.oniceconnectionstatechange = () => {
-            console.log('ICE', pc.iceConnectionState);
-            if (pc.iceConnectionState === 'disconnected') notify('ICE disconnected', 'warning');
-        };
-
-        return pc;
+            
+            notify('Камера и микрофон подключены');
+            updateControlsState();
+            
+        } catch (error) {
+            console.warn('Ошибка доступа к медиа:', error);
+            
+            if (error.name === 'NotFoundError' || error.name === 'OverconstrainedError') {
+                notify('Камера не найдена. Проверьте подключение устройства.', 'warning');
+            } else if (error.name === 'NotAllowedError') {
+                notify('Доступ к камере/микрофону запрещен. Разрешите доступ в настройках браузера.', 'warning');
+            } else {
+                notify('Не удалось получить доступ к камере/микрофону', 'warning');
+            }
+            
+            // Создаем заглушку для локального видео
+            updateControlsState();
+        }
     }
 
     // -----------------------
-    // Sharing UI state when in waiting room
+    // Создание PeerConnection
+    // -----------------------
+    function createPeerConnection() {
+        try {
+            const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+            // Добавляем локальные треки если есть
+            if (state.localStream) {
+                state.localStream.getTracks().forEach(track => {
+                    pc.addTrack(track, state.localStream);
+                });
+            }
+
+            // Обработчик входящих треков
+            pc.ontrack = (event) => {
+                console.log('Получен удаленный трек');
+                const remoteVideo = $('#remoteVideo');
+                if (remoteVideo && event.streams && event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                }
+            };
+
+            // Обработчик ICE кандидатов
+            pc.onicecandidate = (event) => {
+                if (event.candidate && state.callDoc) {
+                    const candidate = event.candidate.toJSON();
+                    
+                    if (state.isHost) {
+                        state.callerCandidatesCol.add(candidate).catch(console.error);
+                    } else {
+                        state.calleeCandidatesCol.add(candidate).catch(console.error);
+                    }
+                }
+            };
+
+            // Мониторинг состояния соединения
+            pc.oniceconnectionstatechange = () => {
+                console.log('ICE состояние:', pc.iceConnectionState);
+                
+                switch (pc.iceConnectionState) {
+                    case 'connected':
+                        notify('Соединение установлено');
+                        break;
+                    case 'disconnected':
+                        notify('Соединение прервано', 'warning');
+                        break;
+                    case 'failed':
+                        notify('Ошибка соединения', 'error');
+                        break;
+                }
+            };
+
+            return pc;
+        } catch (error) {
+            console.error('Ошибка создания PeerConnection:', error);
+            notify('Ошибка создания соединения', 'error');
+            return null;
+        }
+    }
+
+    // -----------------------
+    // Управление UI ожидания
     // -----------------------
     function setWaitingUI(enabled) {
         state.inWaiting = enabled;
-        // disable controls for guest while waiting
+        
         const controls = [micBtn, cameraBtn, screenShareBtn, sendMessageBtn];
-        if (enabled) {
-            controls.forEach(b => { if (b) { b.disabled = true; b.classList && b.classList.add('disabled'); }});
-            if (chatInput) { chatInput.disabled = true; chatInput.placeholder = 'Вы в комнате ожидания...'; }
-        } else {
-            controls.forEach(b => { if (b) { b.disabled = false; b.classList && b.classList.remove('disabled'); }});
-            if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Написать сообщение...'; }
-        }
-    }
-
-    // -----------------------
-    // create call (host)
-    // -----------------------
-    async function createCall() {
-        state.isHost = true;
-        state.callId = Math.random().toString(36).substring(2,10);
-        updateUrlId(state.callId);
-        callTitleEl && (callTitleEl.textContent = `Звонок ${state.callId}`);
-
-        const callDoc = firestore.collection('calls').doc(state.callId);
-        state.callDoc = callDoc;
-        state.callerCandidatesCol = callDoc.collection('callerCandidates');
-        state.calleeCandidatesCol = callDoc.collection('calleeCandidates');
-
-        state.pc = createPc();
-
-        // create offer
-        const offer = await state.pc.createOffer();
-        await state.pc.setLocalDescription(offer);
-
-        // set call doc with startedAt server timestamp so timers sync
-        await callDoc.set({
-            offer: { type: offer.type, sdp: offer.sdp },
-            host: { id: me.id, name: me.name, avatar: me.avatar },
-            settings: { waitingRoom: (waitingRoomToggle ? waitingRoomToggle.checked : true) },
-            startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // read server startedAt (snap) to start timer
-        const snap = await callDoc.get();
-        const started = snap.data()?.startedAt;
-        if (started) startTimerFrom(started.toMillis ? started.toMillis() : started);
-
-        // listen for answer
-        state.callDocUnsub = callDoc.onSnapshot(snap => {
-            const data = snap.data();
-            if (data && data.answer && state.pc && !state.pc.remoteDescription) {
-                state.pc.setRemoteDescription(new RTCSessionDescription(data.answer)).catch(e=>console.warn(e));
+        controls.forEach(control => {
+            if (control) {
+                control.disabled = enabled;
+                control.classList.toggle('disabled', enabled);
             }
         });
-
-        // listen callee candidates
-        state.calleeCandidatesUnsub = state.calleeCandidatesCol.onSnapshot(snapshot => {
-            snapshot.docChanges().forEach(change => {
-                if (change.type === 'added') {
-                    state.pc.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e=>console.warn(e));
-                }
-            });
-        });
-
-        attachParticipantsAndWaitingListeners();
-        attachMessagesListener();
-
-        notify('Звонок создан. Поделись ссылкой.');
-        openShareModalWithCallId();
-        updateControlsState();
-    }
-
-    // -----------------------
-    // join call (guest) — initial: if waitingRoom -> add to waitingUsers and block UI, else perform answer
-    // -----------------------
-    async function joinCallInitial(callId) {
-        state.callId = callId;
-        updateUrlId(callId);
-        callTitleEl && (callTitleEl.textContent = `Звонок ${callId}`);
-
-        const callDoc = firestore.collection('calls').doc(callId);
-        const snap = await callDoc.get();
-        if (!snap.exists) { notify('Звонок не найден', 'error'); return; }
-
-        state.callDoc = callDoc;
-        state.callerCandidatesCol = callDoc.collection('callerCandidates');
-        state.calleeCandidatesCol = callDoc.collection('calleeCandidates');
-
-        const data = snap.data();
-        const waitingEnabled = data?.settings?.waitingRoom ?? true;
-
-        // read startedAt for timer sync if present
-        const started = data?.startedAt;
-        if (started) startTimerFrom(started.toMillis ? started.toMillis() : started);
-
-        attachParticipantsAndWaitingListeners();
-        attachMessagesListener();
-
-        if (waitingEnabled) {
-            // add to waitingUsers
-            await callDoc.collection('waitingUsers').doc(me.id).set({
-                id: me.id, name: me.name, avatar: me.avatar, joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            notify('Вы в комнате ожидания — дождитесь допуска ведущего', 'warning');
-            setWaitingUI(true);
-
-            // listen for being moved to participants — when participant doc with our id created -> initiate peer connection flow
-            const unSub = callDoc.collection('participants').doc(me.id).onSnapshot(async snapP => {
-                if (snapP.exists) {
-                    // accepted by host -> start WebRTC answer flow
-                    unSub(); // detach once accepted
-                    setWaitingUI(false);
-                    await performAnswerFlow(callDoc);
-                }
-            });
-            return;
-        } else {
-            // immediately perform answer flow
-            await performAnswerFlow(callDoc);
+        
+        if (chatInput) {
+            chatInput.disabled = enabled;
+            chatInput.placeholder = enabled ? 'Вы в комнате ожидания...' : 'Написать сообщение...';
         }
     }
 
     // -----------------------
-    // perform answer flow: set remote offer, create answer, write answer; listen candidate streams
+    // Создание звонка (хост)
+    // -----------------------
+    async function createCall() {
+        try {
+            state.isHost = true;
+            state.callId = Math.random().toString(36).substring(2, 10);
+            updateUrlId(state.callId);
+            
+            if (callTitleEl) {
+                callTitleEl.textContent = `Звонок ${state.callId}`;
+            }
+
+            const callDoc = firestore.collection('calls').doc(state.callId);
+            state.callDoc = callDoc;
+            state.callerCandidatesCol = callDoc.collection('callerCandidates');
+            state.calleeCandidatesCol = callDoc.collection('calleeCandidates');
+
+            // Создаем PeerConnection
+            state.pc = createPeerConnection();
+            if (!state.pc) {
+                throw new Error('Не удалось создать соединение');
+            }
+
+            // Создаем оффер
+            const offer = await state.pc.createOffer();
+            await state.pc.setLocalDescription(offer);
+
+            // Сохраняем данные звонка
+            await callDoc.set({
+                offer: { 
+                    type: offer.type, 
+                    sdp: offer.sdp 
+                },
+                host: { 
+                    id: me.id, 
+                    name: me.name, 
+                    avatar: me.avatar 
+                },
+                settings: { 
+                    waitingRoom: waitingRoomToggle ? waitingRoomToggle.checked : true 
+                },
+                startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Запускаем таймер
+            const snap = await callDoc.get();
+            const startedAt = snap.data()?.startedAt;
+            if (startedAt) {
+                startTimerFrom(startedAt.toMillis ? startedAt.toMillis() : Date.now());
+            }
+
+            // Слушаем ответ
+            state.callDocUnsub = callDoc.onSnapshot(snapshot => {
+                const data = snapshot.data();
+                if (data?.answer && state.pc && !state.pc.remoteDescription) {
+                    state.pc.setRemoteDescription(new RTCSessionDescription(data.answer))
+                        .catch(error => console.warn('Ошибка установки remote description:', error));
+                }
+            });
+
+            // Слушаем кандидаты от каллера
+            state.calleeCandidatesUnsub = state.calleeCandidatesCol.onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const candidate = new RTCIceCandidate(change.doc.data());
+                        state.pc.addIceCandidate(candidate)
+                            .catch(error => console.warn('Ошибка добавления ICE кандидата:', error));
+                    }
+                });
+            });
+
+            attachParticipantsAndWaitingListeners();
+            attachMessagesListener();
+
+            notify('Звонок создан. Поделитесь ссылкой.');
+            openShareModalWithCallId();
+            updateControlsState();
+
+        } catch (error) {
+            console.error('Ошибка создания звонка:', error);
+            notify('Не удалось создать звонок', 'error');
+        }
+    }
+
+    // -----------------------
+    // Подключение к звонку (гость)
+    // -----------------------
+    async function joinCallInitial(callId) {
+        try {
+            state.callId = callId;
+            updateUrlId(callId);
+            
+            if (callTitleEl) {
+                callTitleEl.textContent = `Звонок ${callId}`;
+            }
+
+            const callDoc = firestore.collection('calls').doc(callId);
+            const snap = await callDoc.get();
+            
+            if (!snap.exists) {
+                notify('Звонок не найден', 'error');
+                return;
+            }
+
+            state.callDoc = callDoc;
+            state.callerCandidatesCol = callDoc.collection('callerCandidates');
+            state.calleeCandidatesCol = callDoc.collection('calleeCandidates');
+
+            const data = snap.data();
+            const waitingEnabled = data?.settings?.waitingRoom ?? true;
+
+            // Запускаем таймер
+            const startedAt = data?.startedAt;
+            if (startedAt) {
+                startTimerFrom(startedAt.toMillis ? startedAt.toMillis() : Date.now());
+            }
+
+            attachParticipantsAndWaitingListeners();
+            attachMessagesListener();
+
+            if (waitingEnabled) {
+                // Добавляем в комнату ожидания
+                await callDoc.collection('waitingUsers').doc(me.id).set({
+                    id: me.id,
+                    name: me.name,
+                    avatar: me.avatar,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                notify('Вы в комнате ожидания. Ожидайте подтверждения.', 'warning');
+                setWaitingUI(true);
+
+                // Слушаем когда нас примут
+                const unsub = callDoc.collection('participants').doc(me.id).onSnapshot(snapshot => {
+                    if (snapshot.exists) {
+                        unsub();
+                        setWaitingUI(false);
+                        performAnswerFlow(callDoc);
+                    }
+                });
+            } else {
+                // Подключаемся сразу
+                await performAnswerFlow(callDoc);
+            }
+
+        } catch (error) {
+            console.error('Ошибка подключения к звонку:', error);
+            notify('Не удалось подключиться к звонку', 'error');
+        }
+    }
+
+    // -----------------------
+    // Процесс ответа на звонок
     // -----------------------
     async function performAnswerFlow(callDocRef) {
         try {
-            // ensure pc
-            state.pc = createPc();
-            if (state.localStream) state.localStream.getTracks().forEach(t => state.pc.addTrack(t, state.localStream));
+            state.pc = createPeerConnection();
+            if (!state.pc) {
+                throw new Error('Не удалось создать соединение');
+            }
 
             const callSnap = await callDocRef.get();
             const data = callSnap.data();
-            if (!data?.offer) { notify('Оффер не найден', 'error'); return; }
+            
+            if (!data?.offer) {
+                notify('Оффер не найден', 'error');
+                return;
+            }
 
             await state.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
             const answer = await state.pc.createAnswer();
             await state.pc.setLocalDescription(answer);
 
-            await callDocRef.update({ answer: { type: answer.type, sdp: answer.sdp }, joinedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await callDocRef.update({
+                answer: {
+                    type: answer.type,
+                    sdp: answer.sdp
+                },
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
-            // listen caller candidates
+            // Слушаем кандидаты от хоста
             state.callerCandidatesUnsub = state.callerCandidatesCol.onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added') {
-                        state.pc.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e=>console.warn(e));
+                        const candidate = new RTCIceCandidate(change.doc.data());
+                        state.pc.addIceCandidate(candidate)
+                            .catch(error => console.warn('Ошибка добавления ICE кандидата:', error));
                     }
                 });
             });
 
-            // callee candidates will be written by pc.onicecandidate
-            notify('Ответ отправлен, ожидается установление соединения');
+            notify('Подключение устанавливается...');
             updateControlsState();
-        } catch (e) {
-            console.error('performAnswerFlow', e);
-            notify('Ошибка при создании ответа', 'error');
+
+        } catch (error) {
+            console.error('Ошибка в процессе ответа:', error);
+            notify('Ошибка при подключении', 'error');
         }
     }
 
     // -----------------------
-    // Accept / Reject flow for host
+    // Принятие/отклонение пользователей (хост)
     // -----------------------
     async function acceptUser(userId) {
         if (!state.isHost || !state.callDoc) return;
+        
         try {
-            // move from waitingUsers -> participants
             const waitingRef = state.callDoc.collection('waitingUsers').doc(userId);
-            const wSnap = await waitingRef.get();
-            if (!wSnap.exists) return;
-            const user = wSnap.data();
+            const userSnap = await waitingRef.get();
+            
+            if (!userSnap.exists) return;
+            
+            const user = userSnap.data();
             await state.callDoc.collection('participants').doc(userId).set({
-                id: user.id, name: user.name, avatar: user.avatar, joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar,
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
             await waitingRef.delete();
-            notify(`${user.name} принят`);
-        } catch (e) { console.error('acceptUser', e); }
+            notify(`${user.name} принят в звонок`);
+            
+        } catch (error) {
+            console.error('Ошибка принятия пользователя:', error);
+        }
     }
 
     async function rejectUser(userId) {
         if (!state.isHost || !state.callDoc) return;
+        
         try {
             await state.callDoc.collection('waitingUsers').doc(userId).delete();
-            notify('Пользователь отклонён');
-        } catch (e) { console.error('rejectUser', e); }
+            notify('Пользователь отклонен');
+        } catch (error) {
+            console.error('Ошибка отклонения пользователя:', error);
+        }
     }
 
     // -----------------------
-    // Attach listeners: participants, waiting, messages
+    // Слушатели Firestore
     // -----------------------
     function attachParticipantsAndWaitingListeners() {
         if (!state.callDoc) return;
 
-        // participants
+        // Участники
         if (state.participantsUnsub) state.participantsUnsub();
         state.participantsUnsub = state.callDoc.collection('participants').onSnapshot(snapshot => {
-            const arr = [];
-            snapshot.forEach(d => arr.push(d.data()));
-            renderParticipants(arr);
+            const participants = [];
+            snapshot.forEach(doc => participants.push(doc.data()));
+            renderParticipants(participants);
         });
 
-        // waiting users
+        // Ожидающие
         if (state.waitingUnsub) state.waitingUnsub();
         state.waitingUnsub = state.callDoc.collection('waitingUsers').onSnapshot(snapshot => {
-            const arr = [];
-            snapshot.forEach(d => arr.push(d.data()));
-            renderWaiting(arr);
+            const waiting = [];
+            snapshot.forEach(doc => waiting.push(doc.data()));
+            renderWaiting(waiting);
         });
-
-        // If host: subscribe to callerCandidates maybe already done during createCall
     }
 
     function attachMessagesListener() {
         if (!state.callDoc) return;
+        
         if (state.messagesUnsub) state.messagesUnsub();
-        state.messagesUnsub = state.callDoc.collection('messages').orderBy('ts', 'asc').onSnapshot(snapshot => {
-            const msgs = [];
-            snapshot.forEach(d => msgs.push({ id: d.id, ...d.data() }));
-            renderMessages(msgs);
-        });
+        state.messagesUnsub = state.callDoc.collection('messages')
+            .orderBy('ts', 'asc')
+            .onSnapshot(snapshot => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+                renderMessages(messages);
+            });
     }
 
     // -----------------------
-    // Renderers
+    // Рендеринг данных
     // -----------------------
-    function renderParticipants(list) {
+    function renderParticipants(participants) {
         if (!participantsListEl) return;
-        if (!list || !list.length) { participantsListEl.innerHTML = '<p style="color:#666;padding:10px">Нет участников</p>'; return; }
-        participantsListEl.innerHTML = list.map(p => `
-            <div class="participant-item">
-                <div class="participant-avatar-small">${escapeHtml(p.avatar || (p.name && p.name.charAt(0)) || '?')}</div>
-                <div class="participant-details">
-                    <div class="participant-name">${escapeHtml(p.id === me.id ? 'Вы' : p.name)}</div>
-                    <div class="participant-status">${escapeHtml(p.id === me.id ? 'В сети' : 'В сети')}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function renderWaiting(list) {
-        if (!waitingListEl) return;
-        if (!list || !list.length) { waitingListEl.innerHTML = '<p style="color:#666;padding:10px">Нет ожидающих пользователей</p>'; return; }
-        waitingListEl.innerHTML = list.map(u => `
-            <div class="waiting-user" data-id="${escapeHtml(u.id)}">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="participant-avatar-small">${escapeHtml(u.avatar || (u.name && u.name.charAt(0)) || '?')}</div>
-                    <div>
-                        <div class="participant-name">${escapeHtml(u.name)}</div>
-                        <div class="participant-status waiting"><i class="fas fa-clock"></i> Ожидает</div>
-                    </div>
-                </div>
-                ${state.isHost ? `<div style="display:flex;gap:6px;"><button class="btn accept" data-accept="${escapeHtml(u.id)}">✔</button><button class="btn reject" data-reject="${escapeHtml(u.id)}">✖</button></div>` : ''}
-            </div>
-        `).join('');
-
-        if (state.isHost) {
-            waitingListEl.querySelectorAll('[data-accept]').forEach(btn => btn.onclick = () => acceptUser(btn.getAttribute('data-accept')));
-            waitingListEl.querySelectorAll('[data-reject]').forEach(btn => btn.onclick = () => rejectUser(btn.getAttribute('data-reject')));
-        }
-    }
-
-    function renderMessages(list) {
-        if (!chatMessagesEl) return;
-        if (!list.length) {
-            chatMessagesEl.innerHTML = `<div class="message other"><div class="message-sender">Система</div><div class="message-text">Добро пожаловать в звонок! Напишите сообщение чтобы начать общение.</div><div class="message-time"></div></div>`;
+        
+        if (!participants.length) {
+            participantsListEl.innerHTML = '<p style="color:#666;padding:10px">Нет участников</p>';
             return;
         }
-        chatMessagesEl.innerHTML = list.map(m => {
-            const cls = m.userId === me.id ? 'message own' : 'message other';
-            const sender = m.userName || (m.userId === me.id ? 'Вы' : 'Гость');
-            if (m.type === 'reaction') showFloatingReaction(m.payload);
-            return `<div class="${cls}"><div class="message-sender">${escapeHtml(sender)}</div><div class="message-text">${escapeHtml(m.text || m.payload || '')}</div><div class="message-time">${new Date(m.ts).toLocaleTimeString()}</div></div>`;
+        
+        participantsListEl.innerHTML = participants.map(participant => `
+            <div class="participant-item">
+                <div class="participant-avatar-small">
+                    ${escapeHtml(participant.avatar || (participant.name && participant.name.charAt(0)) || '?')}
+                </div>
+                <div class="participant-details">
+                    <div class="participant-name">
+                        ${escapeHtml(participant.id === me.id ? 'Вы' : participant.name)}
+                    </div>
+                    <div class="participant-status">
+                        ${escapeHtml(participant.id === me.id ? 'В сети' : 'В сети')}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderWaiting(waiting) {
+        if (!waitingListEl) return;
+        
+        if (!waiting.length) {
+            waitingListEl.innerHTML = '<p style="color:#666;padding:10px">Нет ожидающих пользователей</p>';
+            return;
+        }
+        
+        waitingListEl.innerHTML = waiting.map(user => `
+            <div class="waiting-user" data-id="${escapeHtml(user.id)}">
+                <div class="waiting-user-info">
+                    <div class="participant-avatar-small">
+                        ${escapeHtml(user.avatar || (user.name && user.name.charAt(0)) || '?')}
+                    </div>
+                    <div>
+                        <div class="participant-name">${escapeHtml(user.name)}</div>
+                        <div class="participant-status waiting">
+                            <i class="fas fa-clock"></i> Ожидает
+                        </div>
+                    </div>
+                </div>
+                ${state.isHost ? `
+                <div class="waiting-actions">
+                    <button class="action-btn accept-btn" data-accept="${escapeHtml(user.id)}">
+                        ✔
+                    </button>
+                    <button class="action-btn reject-btn" data-reject="${escapeHtml(user.id)}">
+                        ✖
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `).join('');
+
+        // Обработчики для кнопок принятия/отклонения
+        if (state.isHost) {
+            waitingListEl.querySelectorAll('[data-accept]').forEach(btn => {
+                btn.addEventListener('click', () => acceptUser(btn.getAttribute('data-accept')));
+            });
+            
+            waitingListEl.querySelectorAll('[data-reject]').forEach(btn => {
+                btn.addEventListener('click', () => rejectUser(btn.getAttribute('data-reject')));
+            });
+        }
+    }
+
+    function renderMessages(messages) {
+        if (!chatMessagesEl) return;
+        
+        if (!messages.length) {
+            chatMessagesEl.innerHTML = `
+                <div class="message other">
+                    <div class="message-sender">Система</div>
+                    <div class="message-text">Добро пожаловать в звонок! Напишите сообщение чтобы начать общение.</div>
+                    <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                </div>
+            `;
+            return;
+        }
+        
+        chatMessagesEl.innerHTML = messages.map(message => {
+            const isOwn = message.userId === me.id;
+            const className = isOwn ? 'message own' : 'message other';
+            const sender = isOwn ? 'Вы' : (message.userName || 'Гость');
+            
+            if (message.type === 'reaction') {
+                showFloatingReaction(message.payload);
+            }
+            
+            return `
+                <div class="${className}">
+                    <div class="message-sender">${escapeHtml(sender)}</div>
+                    <div class="message-text">${escapeHtml(message.text || message.payload || '')}</div>
+                    <div class="message-time">
+                        ${new Date(message.ts).toLocaleTimeString()}
+                    </div>
+                </div>
+            `;
         }).join('');
+        
         chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
     }
 
     // -----------------------
-    // Chat / Reactions sending (fix duplicates)
+    // Чат и реакции
     // -----------------------
     let sendingMessage = false;
-    async function sendChat(text, type='text') {
-        if (!state.callDoc) { notify('Нет активного звонка', 'warning'); return; }
-        if (!text || sendingMessage) return;
+    
+    async function sendChat(content, type = 'text') {
+        if (!state.callDoc || sendingMessage) return;
+        if (!content.trim()) return;
+        
         sendingMessage = true;
+        
         try {
             await state.callDoc.collection('messages').add({
-                userId: me.id, userName: me.name, type, text: type==='text' ? text : null, payload: type!=='text' ? text : null, ts: Date.now()
+                userId: me.id,
+                userName: me.name,
+                type: type,
+                text: type === 'text' ? content : null,
+                payload: type !== 'text' ? content : null,
+                ts: Date.now()
             });
-        } catch (e) { console.error('sendChat', e); }
+        } catch (error) {
+            console.error('Ошибка отправки сообщения:', error);
+            notify('Не удалось отправить сообщение', 'error');
+        }
+        
         sendingMessage = false;
     }
 
-    // floating reaction
-    function showFloatingReaction(sym) {
-        const el = createEl('div', {});
-        el.textContent = sym;
-        el.style.cssText = `position:fixed;font-size:2rem;z-index:10000;animation:floatUp 1.5s ease-out forwards;pointer-events:none;left:${Math.random()*60+20}%;bottom:100px;`;
-        document.body.appendChild(el);
-        setTimeout(()=>el.remove(),1500);
+    function showFloatingReaction(emoji) {
+        const reaction = createEl('div', {
+            style: `
+                position: fixed;
+                font-size: 2rem;
+                z-index: 10000;
+                animation: floatUp 1.5s ease-out forwards;
+                pointer-events: none;
+                left: ${Math.random() * 60 + 20}%;
+                bottom: 100px;
+            `
+        });
+        reaction.textContent = emoji;
+        document.body.appendChild(reaction);
+        
+        setTimeout(() => {
+            if (reaction.parentNode) {
+                reaction.parentNode.removeChild(reaction);
+            }
+        }, 1500);
     }
 
     // -----------------------
-    // Controls: toggle mic/cam/screen
+    // Управление медиа
     // -----------------------
     function updateControlsState() {
-        try {
-            const audioOn = !!(state.localStream && state.localStream.getAudioTracks().length && state.localStream.getAudioTracks()[0].enabled);
-            const videoOn = !!(state.localStream && state.localStream.getVideoTracks().length && state.localStream.getVideoTracks()[0].enabled);
-            if (micBtn) { micBtn.innerHTML = `<i class="fas fa-microphone${audioOn ? '' : '-slash'}"></i>`; micBtn.disabled = state.inWaiting; }
-            if (cameraBtn) { cameraBtn.innerHTML = `<i class="fas fa-video${videoOn ? '' : '-slash'}"></i>`; cameraBtn.disabled = state.inWaiting; }
-            if (screenShareBtn) screenShareBtn.disabled = state.inWaiting;
-            if (sendMessageBtn) sendMessageBtn.disabled = state.inWaiting;
-            if (chatInput) chatInput.disabled = state.inWaiting;
-        } catch (e) {}
+        if (micBtn) {
+            micBtn.innerHTML = `<i class="fas fa-microphone${state.isMicOn ? '' : '-slash'}"></i>`;
+            micBtn.className = `control-btn ${state.isMicOn ? 'secondary' : 'mic-off'}`;
+            micBtn.disabled = state.inWaiting;
+        }
+        
+        if (cameraBtn) {
+            cameraBtn.innerHTML = `<i class="fas fa-video${state.isCameraOn ? '' : '-slash'}"></i>`;
+            cameraBtn.className = `control-btn ${state.isCameraOn ? 'secondary' : 'camera-off'}`;
+            cameraBtn.disabled = state.inWaiting;
+        }
+        
+        if (screenShareBtn) {
+            screenShareBtn.disabled = state.inWaiting;
+        }
+        
+        if (sendMessageBtn) {
+            sendMessageBtn.disabled = state.inWaiting;
+        }
+        
+        if (chatInput) {
+            chatInput.disabled = state.inWaiting;
+        }
     }
 
     function toggleMic() {
-        if (!state.localStream) return notify('Микрофон недоступен','warning');
-        const tracks = state.localStream.getAudioTracks();
-        if (!tracks.length) return notify('Аудио трек отсутствует','warning');
-        tracks.forEach(t=>t.enabled = !t.enabled);
-        updateControlsState();
-        notify(tracks[0].enabled ? 'Микрофон включён' : 'Микрофон выключен');
-    }
-    function toggleCam() {
-        if (!state.localStream) return notify('Камера недоступна','warning');
-        const tracks = state.localStream.getVideoTracks();
-        if (!tracks.length) return notify('Видео трек отсутствует','warning');
-        tracks.forEach(t=>t.enabled = !t.enabled);
-        updateControlsState();
-        notify(tracks[0].enabled ? 'Камера включена' : 'Камера выключена');
-    }
-    async function toggleScreen() {
-        if (state.screenStream) {
-            state.screenStream.getTracks().forEach(t=>t.stop());
-            state.screenStream = null;
-            // restore local video track to sender
-            const sender = state.pc?.getSenders()?.find(s => s.track && s.track.kind === 'video');
-            const localTrack = state.localStream?.getVideoTracks()[0];
-            if (sender && localTrack) try { await sender.replaceTrack(localTrack); } catch(e){console.warn(e);}
-            if (localVideo) localVideo.srcObject = state.localStream || null;
-            notify('Шаринг экрана остановлен');
+        if (!state.localStream) {
+            notify('Микрофон недоступен', 'warning');
             return;
         }
-        if (!navigator.mediaDevices.getDisplayMedia) return notify('Screen share не поддерживается','warning');
+        
+        const audioTracks = state.localStream.getAudioTracks();
+        if (audioTracks.length === 0) {
+            notify('Аудио треки не найдены', 'warning');
+            return;
+        }
+        
+        state.isMicOn = !state.isMicOn;
+        audioTracks.forEach(track => {
+            track.enabled = state.isMicOn;
+        });
+        
+        updateControlsState();
+        notify(state.isMicOn ? 'Микрофон включен' : 'Микрофон выключен');
+    }
+
+    function toggleCam() {
+        if (!state.localStream) {
+            notify('Камера недоступна', 'warning');
+            return;
+        }
+        
+        const videoTracks = state.localStream.getVideoTracks();
+        if (videoTracks.length === 0) {
+            notify('Видео треки не найдены', 'warning');
+            return;
+        }
+        
+        state.isCameraOn = !state.isCameraOn;
+        videoTracks.forEach(track => {
+            track.enabled = state.isCameraOn;
+        });
+        
+        updateControlsState();
+        notify(state.isCameraOn ? 'Камера включена' : 'Камера выключена');
+    }
+
+    async function toggleScreenShare() {
+        if (state.screenStream) {
+            // Останавливаем шаринг экрана
+            state.screenStream.getTracks().forEach(track => track.stop());
+            state.screenStream = null;
+            
+            // Восстанавливаем локальное видео
+            const videoSender = state.pc?.getSenders()?.find(sender => 
+                sender.track && sender.track.kind === 'video'
+            );
+            
+            const localVideoTrack = state.localStream?.getVideoTracks()[0];
+            if (videoSender && localVideoTrack) {
+                try {
+                    await videoSender.replaceTrack(localVideoTrack);
+                } catch (error) {
+                    console.warn('Ошибка восстановления видео трека:', error);
+                }
+            }
+            
+            if (localVideo) {
+                localVideo.srcObject = state.localStream;
+            }
+            
+            notify('Демонстрация экрана остановлена');
+            return;
+        }
+        
+        // Начинаем шаринг экрана
+        if (!navigator.mediaDevices.getDisplayMedia) {
+            notify('Демонстрация экрана не поддерживается', 'warning');
+            return;
+        }
+        
         try {
-            const screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            state.screenStream = screen;
-            const screenTrack = screen.getVideoTracks()[0];
-            const sender = state.pc?.getSenders()?.find(s => s.track && s.track.kind === 'video');
-            if (sender) { await sender.replaceTrack(screenTrack); }
-            else if (state.pc) state.pc.addTrack(screenTrack, screen);
-            if (localVideo) localVideo.srcObject = screen;
-            notify('Шаринг экрана включён');
-            screenTrack.onended = () => { toggleScreen().catch(()=>{}); };
-        } catch (e) { console.warn(e); notify('Не удалось запустить шаринг экрана','error'); }
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: true
+            });
+            
+            state.screenStream = screenStream;
+            const screenTrack = screenStream.getVideoTracks()[0];
+            
+            // Заменяем видео трек
+            const videoSender = state.pc?.getSenders()?.find(sender => 
+                sender.track && sender.track.kind === 'video'
+            );
+            
+            if (videoSender) {
+                await videoSender.replaceTrack(screenTrack);
+            } else if (state.pc) {
+                state.pc.addTrack(screenTrack, screenStream);
+            }
+            
+            if (localVideo) {
+                localVideo.srcObject = screenStream;
+            }
+            
+            notify('Демонстрация экрана начата');
+            
+            // Обработчик окончания шаринга
+            screenTrack.onended = () => {
+                toggleScreenShare().catch(() => {});
+            };
+            
+        } catch (error) {
+            console.warn('Ошибка демонстрации экрана:', error);
+            if (error.name !== 'NotAllowedError') {
+                notify('Не удалось начать демонстрацию экрана', 'error');
+            }
+        }
     }
 
     // -----------------------
-    // Hangup / cleanup
+    // Завершение звонка
     // -----------------------
     async function hangup() {
         stopTimer();
+        
         try {
-            if (state.localStream) { state.localStream.getTracks().forEach(t=>t.stop()); state.localStream=null; }
-            if (state.screenStream) { state.screenStream.getTracks().forEach(t=>t.stop()); state.screenStream=null; }
-            if (state.pc) { try{ state.pc.close(); }catch{} state.pc=null; }
-
-            // unsubscribe
-            state.participantsUnsub && state.participantsUnsub();
-            state.waitingUnsub && state.waitingUnsub();
-            state.messagesUnsub && state.messagesUnsub();
-            state.callDocUnsub && state.callDocUnsub();
-            state.callerCandidatesUnsub && state.callerCandidatesUnsub();
-            state.calleeCandidatesUnsub && state.calleeCandidatesUnsub();
-
-            // cleanup Firestore doc if host
+            // Останавливаем все медиа потоки
+            if (state.localStream) {
+                state.localStream.getTracks().forEach(track => track.stop());
+                state.localStream = null;
+            }
+            
+            if (state.screenStream) {
+                state.screenStream.getTracks().forEach(track => track.stop());
+                state.screenStream = null;
+            }
+            
+            // Закрываем PeerConnection
+            if (state.pc) {
+                try {
+                    state.pc.close();
+                } catch (error) {
+                    console.warn('Ошибка закрытия PeerConnection:', error);
+                }
+                state.pc = null;
+            }
+            
+            // Отписываемся от слушателей
+            const unsubs = [
+                state.participantsUnsub,
+                state.waitingUnsub,
+                state.messagesUnsub,
+                state.callDocUnsub,
+                state.callerCandidatesUnsub,
+                state.calleeCandidatesUnsub
+            ];
+            
+            unsubs.forEach(unsub => {
+                if (unsub) unsub();
+            });
+            
+            // Очищаем данные звонка если мы хост
             if (state.isHost && state.callDoc) {
                 try {
-                    const callRef = state.callDoc;
-                    const callerDocs = await callRef.collection('callerCandidates').get();
-                    for (const d of callerDocs.docs) await d.ref.delete();
-                    const calleeDocs = await callRef.collection('calleeCandidates').get();
-                    for (const d of calleeDocs.docs) await d.ref.delete();
-                    await callRef.delete();
-                } catch (e) { console.warn('cleanup callDoc', e); }
+                    // Удаляем все кандидаты
+                    const callerCandidates = await state.callerCandidatesCol.get();
+                    const deleteCallerPromises = callerCandidates.docs.map(doc => doc.ref.delete());
+                    
+                    const calleeCandidates = await state.calleeCandidatesCol.get();
+                    const deleteCalleePromises = calleeCandidates.docs.map(doc => doc.ref.delete());
+                    
+                    await Promise.all([...deleteCallerPromises, ...deleteCalleePromises]);
+                    await state.callDoc.delete();
+                    
+                } catch (error) {
+                    console.warn('Ошибка очистки данных звонка:', error);
+                }
             } else if (state.callDoc && !state.isHost) {
-                // remove self from participants/waiting
-                try { await state.callDoc.collection('participants').doc(me.id).delete().catch(()=>{}); await state.callDoc.collection('waitingUsers').doc(me.id).delete().catch(()=>{}); } catch (e) {}
+                // Удаляем себя из участников/ожидания
+                try {
+                    await state.callDoc.collection('participants').doc(me.id).delete();
+                    await state.callDoc.collection('waitingUsers').doc(me.id).delete();
+                } catch (error) {
+                    // Игнорируем ошибки удаления
+                }
             }
-
-            notify('Звонок завершён');
-            setTimeout(()=>window.location.href='index.html',700);
-        } catch (e) { console.error(e); }
-    }
-
-    // -----------------------
-    // Helpers: URL, share modal
-    // -----------------------
-    function updateUrlId(id) { const u = new URL(window.location.href); u.searchParams.set('id', id); history.replaceState({},'',u); }
-    function openShareModalWithCallId() { if (!shareModal || !shareLinkInput) return; shareLinkInput.value = `${location.origin}${location.pathname}?id=${state.callId}`; shareModal.style.display='flex'; }
-    function closeShareModal() { if (shareModal) shareModal.style.display='none'; }
-
-    // -----------------------
-    // UI bind events
-    // -----------------------
-    function bindUI() {
-        if (micBtn) micBtn.addEventListener('click', () => { if (!state.inWaiting) toggleMic(); });
-        if (cameraBtn) cameraBtn.addEventListener('click', () => { if (!state.inWaiting) toggleCam(); });
-        if (screenShareBtn) screenShareBtn.addEventListener('click', () => { if (!state.inWaiting) toggleScreen().catch(()=>{}); });
-        if (endCallBtn) endCallBtn.addEventListener('click', () => { if (endCallModal) endCallModal.style.display='flex'; });
-        if (confirmEndCallBtn) confirmEndCallBtn.addEventListener('click', async ()=>{ if (endCallModal) endCallModal.style.display='none'; await hangup(); });
-        if (cancelEndCallBtn) cancelEndCallBtn.addEventListener('click', ()=>{ if (endCallModal) endCallModal.style.display='none'; });
-        if (shareLinkBtn) shareLinkBtn.addEventListener('click', openShareModalWithCallId);
-        if (copyLinkBtn) copyLinkBtn.addEventListener('click', ()=>{ shareLinkInput.select(); navigator.clipboard.writeText(shareLinkInput.value).then(()=>notify('Скопировано')).catch(()=>notify('Не удалось скопировать','error')); });
-        if (closeShareModalBtn) closeShareModalBtn.addEventListener('click', closeShareModal);
-
-        if (sendMessageBtn) sendMessageBtn.addEventListener('click', async ()=>{ const t = chatInput.value.trim(); if (!t) return; await sendChat(t,'text'); chatInput.value=''; });
-        if (chatInput) chatInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); sendMessageBtn.click(); } });
-
-        // reaction buttons
-        $$('.reaction-btn').forEach(b => b.addEventListener('click', async function () {
-            const sym = this.textContent || '👍';
-            await sendChat(sym, 'reaction'); // single send
-        }));
-    }
-
-    // -----------------------
-    // Run initialization
-    // -----------------------
-    async function run() {
-        bindUI();
-        await signInAnon();
-        await initLocalMedia();
-
-        // Determine role by URL
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('id');
-
-        if (!id) {
-            // Create call and be host
-            await createCall();
-        } else {
-            // Try to join (initial). If waitingRoom enabled we'll be added to waitingUsers and blocked until accepted.
-            await joinCallInitial(id);
-            // Determine if we are host: only host is the creator (if our uid equals callDoc.host.id)
-            // But host will always create call; this side is guest
+            
+            notify('Звонок завершен');
+            
+            // Возвращаемся на главную страницу
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Ошибка завершения звонка:', error);
+            notify('Ошибка при завершении звонка', 'error');
         }
-
-        // update control visuals
-        updateControlsState();
     }
 
     // -----------------------
-    // Run
+    // Вспомогательные функции
     // -----------------------
-    run().catch(e => { console.error(e); notify('Ошибка запуска: см. консоль', 'error'); });
-
-    // Expose some helpers to window for debugging (optional)
-    window._pingr = {
-        state, me, createCall, joinCallInitial, acceptUser, rejectUser, hangup
-    };
-
-    // CSS animation for reactions (append once)
-    const style = document.createElement('style');
-    style.textContent = `
-    @keyframes floatUp {
-      0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+    function updateUrlId(id) {
+        const url = new URL(window.location);
+        url.searchParams.set('id', id);
+        window.history.replaceState({}, '', url);
     }
-    .disabled { opacity: 0.5; pointer-events: none; }
-    `;
-    document.head.appendChild(style);
+
+    function openShareModalWithCallId() {
+        if (!shareModal || !shareLinkInput) return;
+        
+        shareLinkInput.value = `${window.location.origin}${window.location.pathname}?id=${state.callId}`;
+        shareModal.style.display = 'flex';
+    }
+
+    function closeShareModal() {
+        if (shareModal) {
+            shareModal.style.display = 'none';
+        }
+    }
+
+    // -----------------------
+    // Обработчики событий UI
+    // -----------------------
+    function bindUIEvents() {
+        // Кнопки управления
+        if (micBtn) {
+            micBtn.addEventListener('click', toggleMic);
+        }
+        
+        if (cameraBtn) {
+            cameraBtn.addEventListener('click', toggleCam);
+        }
+        
+        if (screenShareBtn) {
+            screenShareBtn.addEventListener('click', () => {
+                toggleScreenShare().catch(console.error);
+            });
+        }
+        
+        if (endCallBtn) {
+            endCallBtn.addEventListener('click', () => {
+                if (endCallModal) {
+                    endCallModal.style.display = 'flex';
+                }
+            });
+        }
+        
+        if (confirmEndCallBtn) {
+            confirmEndCallBtn.addEventListener('click', async () => {
+                if (endCallModal) {
+                    endCallModal.style.display = 'none';
+                }
+                await hangup();
+            });
+        }
+        
+        if (cancelEndCallBtn) {
+            cancelEndCallBtn.addEventListener('click', () => {
+                if (endCallModal) {
+                    endCallModal.style.display = 'none';
+                }
+            });
+        }
+        
+        // Кнопки шаринга
+        if (shareLinkBtn) {
+            shareLinkBtn.addEventListener('click', openShareModalWithCallId);
+        }
+        
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', async () => {
+                if (!shareLinkInput) return;
+                
+                shareLinkInput.select();
+                shareLinkInput.setSelectionRange(0, 99999);
+                
+                try {
+                    await navigator.clipboard.writeText(shareLinkInput.value);
+                    notify('Ссылка скопирована');
+                } catch (error) {
+                    console.warn('Ошибка копирования:', error);
+                    notify('Не удалось скопировать ссылку', 'error');
+                }
+            });
+        }
+        
+        if (closeShareModalBtn) {
+            closeShareModalBtn.addEventListener('click', closeShareModal);
+        }
+        
+        // Чат
+        if (sendMessageBtn) {
+            sendMessageBtn.addEventListener('click', async () => {
+                const text = chatInput?.value.trim();
+                if (!text) return;
+                
+                await sendChat(text, 'text');
+                if (chatInput) chatInput.value = '';
+            });
+        }
+        
+        if (chatInput) {
+            chatInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendMessageBtn?.click();
+                }
+            });
+        }
+        
+        // Реакции
+        $$('.reaction-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const emoji = this.textContent || '👍';
+                await sendChat(emoji, 'reaction');
+            });
+        });
+        
+        // Табы сайдбара
+        $$('.sidebar-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                
+                // Активируем таб
+                $$('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Показываем соответствующий контент
+                $$('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                const targetContent = $(`#${tabName}Tab`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            });
+        });
+    }
+
+    // -----------------------
+    // Основная функция инициализации
+    // -----------------------
+    async function initialize() {
+        try {
+            // Инициализируем UI
+            bindUIEvents();
+            ensureVideoElements();
+            
+            // Инициализируем Firebase
+            const firebaseReady = await initializeFirebase();
+            if (!firebaseReady) {
+                notify('Firebase не доступен. Используется локальный режим.', 'warning');
+            }
+            
+            // Аутентифицируем пользователя
+            await signInAnon();
+            
+            // Инициализируем медиа
+            await initLocalMedia();
+            
+            // Определяем роль (хост или гость)
+            const urlParams = new URLSearchParams(window.location.search);
+            const callId = urlParams.get('id');
+            
+            if (!callId) {
+                // Создаем новый звонок
+                await createCall();
+            } else {
+                // Присоединяемся к существующему звонку
+                await joinCallInitial(callId);
+            }
+            
+            console.log('Приложение инициализировано');
+            
+        } catch (error) {
+            console.error('Ошибка инициализации:', error);
+            notify('Ошибка инициализации приложения', 'error');
+        }
+    }
+
+    // -----------------------
+    // Запуск приложения
+    // -----------------------
+    initialize();
+
+    // Экспортируем объекты для отладки
+    window.appState = state;
+    window.currentUser = me;
 
 })();
 </script>
-
-
 </body>
 </html>
