@@ -37,29 +37,23 @@
         .call-container {
             display: flex;
             height: 100vh;
-        }
-
-        /* Video Section */
-        .video-section {
-            flex: 1;
-            display: flex;
             flex-direction: column;
-            background: #000;
-            position: relative;
         }
 
+        /* Header */
         .call-header {
-            padding: 15px 20px;
-            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 10;
+            border-bottom: 1px solid #333;
         }
 
         .call-info h1 {
             font-size: 1.1rem;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             color: white;
         }
 
@@ -77,21 +71,40 @@
             background: rgba(255, 255, 255, 0.1);
             color: white;
             border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
+            padding: 8px 12px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 0.8rem;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .header-btn:hover {
             background: rgba(255, 255, 255, 0.2);
         }
 
+        /* Main Content */
+        .call-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Video Section */
+        .video-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            position: relative;
+        }
+
         .video-grid {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 10px;
             padding: 15px;
             align-content: start;
@@ -129,10 +142,6 @@
             transform: scaleX(-1);
         }
 
-        .remote-video {
-            transform: scaleX(1);
-        }
-
         .participant-info {
             position: absolute;
             bottom: 10px;
@@ -162,10 +171,6 @@
             background: var(--danger);
         }
 
-        .status-offline {
-            background: #666;
-        }
-
         .participant-avatar {
             width: 80px;
             height: 80px;
@@ -188,13 +193,13 @@
         }
 
         .device-icon {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             background: rgba(0, 0, 0, 0.7);
         }
 
@@ -214,6 +219,38 @@
             color: var(--danger);
         }
 
+        /* Reactions - НОВОЕ РАСПОЛОЖЕНИЕ */
+        .reactions-container {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .reaction-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reaction-btn:hover {
+            transform: scale(1.2);
+            background: var(--accent);
+        }
+
         /* Controls Bar */
         .controls-bar {
             position: absolute;
@@ -221,7 +258,7 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 15px;
+            gap: 12px;
             background: rgba(0, 0, 0, 0.9);
             padding: 15px 25px;
             border-radius: 30px;
@@ -264,11 +301,6 @@
             opacity: 1;
         }
 
-        .control-btn.primary {
-            background: var(--light);
-            color: var(--dark);
-        }
-
         .control-btn.secondary {
             background: rgba(255, 255, 255, 0.2);
             color: white;
@@ -279,22 +311,8 @@
             color: white;
         }
 
-        .control-btn.success {
-            background: var(--success);
-            color: white;
-        }
-
-        .control-btn.warning {
-            background: var(--warning);
-            color: var(--dark);
-        }
-
         .control-btn:hover {
             transform: scale(1.1);
-        }
-
-        .control-btn.active {
-            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
         }
 
         .control-btn.mic-off {
@@ -309,7 +327,7 @@
 
         /* Sidebar */
         .call-sidebar {
-            width: 320px;
+            width: 350px;
             background: #2a2a2a;
             display: flex;
             flex-direction: column;
@@ -349,6 +367,7 @@
             flex: 1;
             display: none;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .tab-content.active {
@@ -512,6 +531,7 @@
         /* Waiting Room */
         .waiting-room {
             padding: 15px;
+            overflow-y: auto;
         }
 
         .waiting-list {
@@ -630,34 +650,6 @@
             color: white;
         }
 
-        /* Reactions */
-        .reactions-bar {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-            z-index: 10;
-        }
-
-        .reaction-btn {
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .reaction-btn:hover {
-            transform: scale(1.2);
-            background: var(--accent);
-        }
-
         /* Notifications */
         .notification {
             position: fixed;
@@ -697,35 +689,57 @@
             }
         }
 
-        /* Media Queries */
+        /* Mobile Layout */
         @media (max-width: 768px) {
             .call-container {
+                height: 100vh;
+            }
+
+            .call-content {
                 flex-direction: column;
             }
-            
+
             .call-sidebar {
                 width: 100%;
                 height: 40vh;
+                border-left: none;
+                border-top: 1px solid #444;
             }
-            
+
             .video-grid {
                 grid-template-columns: 1fr;
                 gap: 8px;
                 padding: 10px;
             }
-            
+
             .controls-bar {
                 bottom: 10px;
                 padding: 12px 20px;
                 gap: 10px;
             }
-            
+
             .control-btn {
                 width: 45px;
                 height: 45px;
                 font-size: 1.1rem;
             }
-            
+
+            /* Reactions на мобильных - под controls */
+            .reactions-container {
+                position: relative;
+                top: auto;
+                left: auto;
+                flex-direction: row;
+                justify-content: center;
+                margin-top: 10px;
+            }
+
+            .reaction-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+
             .participant-info {
                 font-size: 0.7rem;
                 padding: 4px 8px;
@@ -738,7 +752,7 @@
             }
             
             .header-btn {
-                padding: 4px 8px;
+                padding: 6px 10px;
                 font-size: 0.7rem;
             }
             
@@ -752,105 +766,122 @@
                 height: 40px;
                 font-size: 1rem;
             }
+
+            .reactions-container {
+                gap: 6px;
+            }
+
+            .reaction-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="call-container">
-        <!-- Video Section -->
-        <div class="video-section">
-            <div class="call-header">
-                <div class="call-info">
-                    <h1 id="callTitle">Звонок Pingr</h1>
-                    <div class="call-timer" id="callTimer">00:00</div>
-                </div>
-                <div class="call-actions">
-                    <button class="header-btn" id="shareLinkBtn">
-                        <i class="fas fa-link"></i> Пригласить
-                    </button>
-                    <button class="header-btn" id="waitingRoomBtn">
-                        <i class="fas fa-door-open"></i> Ожидание
-                    </button>
-                </div>
+        <!-- Header -->
+        <div class="call-header">
+            <div class="call-info">
+                <h1 id="callTitle">Звонок Pingr</h1>
+                <div class="call-timer" id="callTimer">00:00</div>
             </div>
-
-            <div class="video-grid" id="videoGrid">
-                <!-- Видео участников -->
-            </div>
-
-            <div class="reactions-bar">
-                <button class="reaction-btn" title="Нравится">👍</button>
-                <button class="reaction-btn" title="Аплодисменты">👏</button>
-                <button class="reaction-btn" title="Вопрос">❓</button>
-                <button class="reaction-btn" title="Сердце">❤️</button>
-            </div>
-
-            <div class="controls-bar">
-                <button class="control-btn secondary" id="micBtn" data-tooltip="Микрофон">
-                    <i class="fas fa-microphone"></i>
+            <div class="call-actions">
+                <button class="header-btn" id="shareLinkBtn">
+                    <i class="fas fa-link"></i> Пригласить
                 </button>
-                <button class="control-btn secondary" id="cameraBtn" data-tooltip="Камера">
-                    <i class="fas fa-video"></i>
-                </button>
-                <button class="control-btn secondary" id="screenShareBtn" data-tooltip="Демонстрация экрана">
-                    <i class="fas fa-desktop"></i>
-                </button>
-                <button class="control-btn secondary" id="participantsBtn" data-tooltip="Участники">
-                    <i class="fas fa-users"></i>
-                </button>
-                <button class="control-btn danger" id="endCallBtn" data-tooltip="Завершить звонок">
-                    <i class="fas fa-phone-slash"></i>
+                <button class="header-btn" id="waitingRoomBtn">
+                    <i class="fas fa-door-open"></i> Ожидание
                 </button>
             </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="call-sidebar">
-            <div class="sidebar-tabs">
-                <button class="sidebar-tab active" data-tab="participants">
-                    <i class="fas fa-users"></i> Участники
-                </button>
-                <button class="sidebar-tab" data-tab="chat">
-                    <i class="fas fa-comments"></i> Чат
-                </button>
-                <button class="sidebar-tab" data-tab="waiting">
-                    <i class="fas fa-clock"></i> Ожидание
-                </button>
-            </div>
+        <!-- Main Content -->
+        <div class="call-content">
+            <!-- Video Section -->
+            <div class="video-section">
+                <!-- Reactions - ПЕРЕМЕЩЕНЫ ВЛЕВО -->
+                <div class="reactions-container">
+                    <button class="reaction-btn" title="Нравится">👍</button>
+                    <button class="reaction-btn" title="Аплодисменты">👏</button>
+                    <button class="reaction-btn" title="Вопрос">❓</button>
+                    <button class="reaction-btn" title="Сердце">❤️</button>
+                </div>
 
-            <div class="tab-content active" id="participantsTab">
-                <div class="participants-list" id="participantsList">
-                    <!-- Участники -->
+                <!-- Video Grid -->
+                <div class="video-grid" id="videoGrid">
+                    <!-- Видео участников -->
+                </div>
+
+                <!-- Controls Bar -->
+                <div class="controls-bar">
+                    <button class="control-btn secondary" id="micBtn" data-tooltip="Микрофон">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="control-btn secondary" id="cameraBtn" data-tooltip="Камера">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button class="control-btn secondary" id="screenShareBtn" data-tooltip="Демонстрация экрана">
+                        <i class="fas fa-desktop"></i>
+                    </button>
+                    <button class="control-btn secondary" id="participantsBtn" data-tooltip="Участники">
+                        <i class="fas fa-users"></i>
+                    </button>
+                    <button class="control-btn danger" id="endCallBtn" data-tooltip="Завершить звонок">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
                 </div>
             </div>
 
-            <div class="tab-content" id="chatTab">
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message other">
-                        <div class="message-sender">Система</div>
-                        <div class="message-text">Добро пожаловать в звонок! Напишите сообщение чтобы начать общение.</div>
-                        <div class="message-time" id="currentTime"></div>
-                    </div>
+            <!-- Sidebar -->
+            <div class="call-sidebar">
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" data-tab="participants">
+                        <i class="fas fa-users"></i> Участники
+                    </button>
+                    <button class="sidebar-tab" data-tab="chat">
+                        <i class="fas fa-comments"></i> Чат
+                    </button>
+                    <button class="sidebar-tab" data-tab="waiting">
+                        <i class="fas fa-clock"></i> Ожидание
+                    </button>
                 </div>
-                <div class="chat-input">
-                    <div class="chat-input-group">
-                        <input type="text" class="chat-input-field" id="chatInput" placeholder="Написать сообщение...">
-                        <button class="chat-send-btn" id="sendMessageBtn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
 
-            <div class="tab-content" id="waitingTab">
-                <div class="waiting-room">
-                    <h4 style="margin-bottom: 10px; color: var(--accent);">Комната ожидания</h4>
-                    <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                        <input type="checkbox" id="waitingRoomToggle" checked>
-                        <label for="waitingRoomToggle" style="color: #ccc;">Включить комнату ожидания</label>
+                <div class="tab-content active" id="participantsTab">
+                    <div class="participants-list" id="participantsList">
+                        <!-- Участники -->
                     </div>
-                    <div class="waiting-list" id="waitingList">
-                        <!-- Ожидающие пользователи -->
+                </div>
+
+                <div class="tab-content" id="chatTab">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message other">
+                            <div class="message-sender">Система</div>
+                            <div class="message-text">Добро пожаловать в звонок! Напишите сообщение чтобы начать общение.</div>
+                            <div class="message-time" id="currentTime"></div>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <div class="chat-input-group">
+                            <input type="text" class="chat-input-field" id="chatInput" placeholder="Написать сообщение...">
+                            <button class="chat-send-btn" id="sendMessageBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="waitingTab">
+                    <div class="waiting-room">
+                        <h4 style="margin-bottom: 10px; color: var(--accent);">Комната ожидания</h4>
+                        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                            <input type="checkbox" id="waitingRoomToggle" checked>
+                            <label for="waitingRoomToggle" style="color: #ccc;">Включить комнату ожидания</label>
+                        </div>
+                        <div class="waiting-list" id="waitingList">
+                            <!-- Ожидающие пользователи -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -897,485 +928,646 @@
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
-let callState = {
-    isMuted: false,
-    isVideoOn: true,
-    timer: 0,
-    callId: null,
-    isHost: false,
-    localStream: null,
-    participants: [],
-    waitingUsers: [],
-    timerInterval: null
-};
+class CallManager {
+    constructor() {
+        this.state = {
+            isMuted: false,
+            isVideoOn: true,
+            timer: 0,
+            callId: null,
+            isHost: false,
+            localStream: null,
+            participants: [],
+            waitingUsers: [],
+            timerInterval: null,
+            syncInterval: null
+        };
+        
+        this.init();
+    }
 
-// Работа с общим хранилищем
-function getCallData() {
-    const data = localStorage.getItem('pingr_active_call');
-    return data ? JSON.parse(data) : null;
+    async init() {
+        await this.initializeCall();
+        this.setupEventListeners();
+        this.startTimer();
+        this.startSync();
+    }
+
+    async initializeCall() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.state.callId = urlParams.get('id');
+        
+        if (!this.state.callId) {
+            this.state.callId = this.generateCallId();
+            this.state.isHost = true;
+            window.history.replaceState({}, '', `?id=${this.state.callId}`);
+        }
+
+        console.log('🔄 Инициализация звонка:', this.state.callId, 'Хост:', this.state.isHost);
+
+        // Инициализация медиа
+        await this.initializeMedia();
+        
+        // Работа с пользователем
+        const user = await this.getCurrentUser();
+        const userData = this.createUserData(user);
+
+        if (this.state.isHost) {
+            this.createCall(userData);
+        } else {
+            this.joinCall(userData);
+        }
+
+        this.addParticipant(userData, true);
+    }
+
+    createUserData(user) {
+        return {
+            id: user?.uid || 'guest_' + Date.now(),
+            name: user?.displayName || user?.email || 'Гость',
+            avatar: (user?.displayName || user?.email || 'Г').charAt(0).toUpperCase(),
+            isGuest: !user
+        };
+    }
+
+    getCurrentUser() {
+        return new Promise(resolve => {
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+    }
+
+    async initializeMedia() {
+        try {
+            this.state.localStream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: true 
+            });
+            this.showVideo();
+            this.showNotification('🎥 Камера и микрофон подключены');
+        } catch (error) {
+            console.log('❌ Доступ к медиа отклонен');
+            this.showAvatar();
+            this.state.isMuted = true;
+            this.state.isVideoOn = false;
+            this.showNotification('⚠️ Медиа устройства недоступны', 'warning');
+        }
+        this.updateControlButtons();
+    }
+
+    showVideo() {
+        const grid = document.getElementById('videoGrid');
+        grid.innerHTML = `
+            <div class="video-participant ${this.state.isMuted ? 'muted' : 'active'}" id="localParticipant">
+                <video class="participant-video local-video" autoplay muted playsinline></video>
+                <div class="participant-info">
+                    <span class="status-indicator ${this.state.isMuted ? 'status-muted' : 'status-online'}"></span>
+                    <span>Вы</span>
+                    <i class="fas fa-microphone${this.state.isMuted ? '-slash' : ''}"></i>
+                </div>
+                <div class="device-status">
+                    <div class="device-icon ${this.state.isMuted ? 'mic-off' : 'mic-on'}">
+                        <i class="fas fa-microphone${this.state.isMuted ? '-slash' : ''}"></i>
+                    </div>
+                    <div class="device-icon ${this.state.isVideoOn ? 'camera-on' : 'camera-off'}">
+                        <i class="fas fa-video${this.state.isVideoOn ? '' : '-slash'}"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+        const video = grid.querySelector('video');
+        video.srcObject = this.state.localStream;
+    }
+
+    showAvatar() {
+        const grid = document.getElementById('videoGrid');
+        const user = auth.currentUser || { displayName: 'Гость' };
+        grid.innerHTML = `
+            <div class="video-participant ${this.state.isMuted ? 'muted' : 'active'}" id="localParticipant">
+                <div class="participant-avatar">${(user.displayName || 'Г').charAt(0).toUpperCase()}</div>
+                <div class="participant-info">
+                    <span class="status-indicator ${this.state.isMuted ? 'status-muted' : 'status-online'}"></span>
+                    <span>Вы</span>
+                    <i class="fas fa-microphone${this.state.isMuted ? '-slash' : ''}"></i>
+                </div>
+                <div class="device-status">
+                    <div class="device-icon mic-off">
+                        <i class="fas fa-microphone-slash"></i>
+                    </div>
+                    <div class="device-icon camera-off">
+                        <i class="fas fa-video-slash"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Система хранения данных
+    getCallData() {
+        const calls = JSON.parse(localStorage.getItem('pingr_calls') || '{}');
+        return calls[this.state.callId];
+    }
+
+    saveCallData(callData) {
+        const calls = JSON.parse(localStorage.getItem('pingr_calls') || '{}');
+        calls[this.state.callId] = {
+            ...callData,
+            lastUpdated: Date.now()
+        };
+        localStorage.setItem('pingr_calls', JSON.stringify(calls));
+    }
+
+    createCall(host) {
+        const callData = {
+            id: this.state.callId,
+            host: host,
+            participants: [host],
+            waitingUsers: [],
+            settings: {
+                waitingRoom: true
+            },
+            createdAt: Date.now(),
+            status: 'active'
+        };
+        this.saveCallData(callData);
+        this.showNotification('🎉 Вы создали звонок! Поделитесь ссылкой с друзьями.');
+    }
+
+    joinCall(user) {
+        const existingCall = this.getCallData();
+        
+        if (existingCall && existingCall.id === this.state.callId) {
+            document.getElementById('callTitle').textContent = `Звонок ${existingCall.host.name}`;
+            
+            if (existingCall.settings.waitingRoom && !this.state.isHost) {
+                // Добавляем в ожидание
+                const waitingUsers = [...(existingCall.waitingUsers || []), user];
+                this.saveCallData({ ...existingCall, waitingUsers });
+                this.state.waitingUsers = waitingUsers;
+                this.showNotification('⏳ Ожидайте подтверждения от организатора', 'warning');
+            } else {
+                // Добавляем сразу в участники
+                const participants = [...(existingCall.participants || []), user];
+                this.saveCallData({ ...existingCall, participants });
+                this.showNotification(`✅ Вы присоединились к звонку ${existingCall.host.name}`);
+            }
+        } else {
+            // Если звонок не найден, создаем новый
+            this.state.isHost = true;
+            this.createCall(user);
+            this.showNotification('🆕 Создан новый звонок');
+        }
+    }
+
+    // Синхронизация в реальном времени
+    startSync() {
+        this.syncInterval = setInterval(() => {
+            const callData = this.getCallData();
+            if (callData) {
+                this.updateUIFromData(callData);
+            }
+            
+            // Очистка старых звонков (больше 1 часа)
+            this.cleanupOldCalls();
+        }, 1000);
+    }
+
+    updateUIFromData(callData) {
+        // Обновляем участников
+        if (callData.participants && this.shouldUpdateParticipants(callData.participants)) {
+            this.updateParticipantsList(callData.participants);
+        }
+        
+        // Обновляем ожидание
+        if (callData.waitingUsers && this.shouldUpdateWaiting(callData.waitingUsers)) {
+            this.state.waitingUsers = callData.waitingUsers;
+            this.updateWaitingList();
+        }
+    }
+
+    shouldUpdateParticipants(newParticipants) {
+        const currentIds = this.state.participants.map(p => p.id);
+        const newIds = newParticipants.map(p => p.id);
+        return JSON.stringify(currentIds) !== JSON.stringify(newIds);
+    }
+
+    shouldUpdateWaiting(newWaiting) {
+        const currentIds = this.state.waitingUsers.map(p => p.id);
+        const newIds = newWaiting.map(p => p.id);
+        return JSON.stringify(currentIds) !== JSON.stringify(newIds);
+    }
+
+    updateParticipantsList(participants) {
+        this.state.participants = participants;
+        const container = document.getElementById('participantsList');
+        
+        container.innerHTML = participants.map(user => {
+            const isCurrentUser = user.id === (auth.currentUser?.uid || this.state.participants[0]?.id);
+            return `
+                <div class="participant-item">
+                    <div class="participant-avatar-small">${user.avatar}</div>
+                    <div class="participant-details">
+                        <div class="participant-name">
+                            ${isCurrentUser ? 'Вы' : user.name}
+                            ${isCurrentUser ? '<span class="status-indicator status-online"></span>' : ''}
+                        </div>
+                        <div class="participant-status ${isCurrentUser && this.state.isMuted ? 'muted' : ''}">
+                            <i class="fas fa-circle"></i>
+                            ${isCurrentUser ? (this.state.isMuted ? 'Микрофон выключен' : 'В сети') : 'В сети'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    updateWaitingList() {
+        const container = document.getElementById('waitingList');
+        
+        if (this.state.waitingUsers.length === 0) {
+            container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Нет ожидающих пользователей</p>';
+            return;
+        }
+
+        container.innerHTML = this.state.waitingUsers.map(user => `
+            <div class="waiting-user">
+                <div class="waiting-user-info">
+                    <div class="participant-avatar-small">${user.avatar}</div>
+                    <div>
+                        <div class="participant-name">${user.name}</div>
+                        <div class="participant-status waiting">
+                            <i class="fas fa-clock"></i> Ожидает
+                        </div>
+                    </div>
+                </div>
+                ${this.state.isHost ? `
+                <div class="waiting-actions">
+                    <button class="action-btn accept-btn" onclick="callManager.acceptUser('${user.id}')">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="action-btn reject-btn" onclick="callManager.rejectUser('${user.id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+
+    acceptUser(userId) {
+        const user = this.state.waitingUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        this.state.waitingUsers = this.state.waitingUsers.filter(u => u.id !== userId);
+        
+        const callData = this.getCallData();
+        const participants = [...(callData.participants || []), user];
+        
+        this.saveCallData({ 
+            ...callData,
+            participants, 
+            waitingUsers: this.state.waitingUsers 
+        });
+        
+        this.showNotification(`✅ ${user.name} принят в звонок`);
+    }
+
+    rejectUser(userId) {
+        const user = this.state.waitingUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        this.state.waitingUsers = this.state.waitingUsers.filter(u => u.id !== userId);
+        
+        const callData = this.getCallData();
+        this.saveCallData({ 
+            ...callData,
+            waitingUsers: this.state.waitingUsers 
+        });
+        
+        this.showNotification(`❌ ${user.name} отклонен`);
+    }
+
+    // Управление медиа
+    toggleMicrophone() {
+        if (this.state.localStream) {
+            const audioTracks = this.state.localStream.getAudioTracks();
+            audioTracks.forEach(track => {
+                track.enabled = !track.enabled;
+            });
+            this.state.isMuted = !audioTracks[0]?.enabled;
+        } else {
+            this.state.isMuted = !this.state.isMuted;
+        }
+        
+        this.updateControlButtons();
+        this.updateLocalParticipant();
+        this.showNotification(this.state.isMuted ? '🔇 Микрофон выключен' : '🎤 Микрофон включен');
+    }
+
+    toggleCamera() {
+        if (this.state.localStream) {
+            const videoTracks = this.state.localStream.getVideoTracks();
+            videoTracks.forEach(track => {
+                track.enabled = !track.enabled;
+            });
+            this.state.isVideoOn = !videoTracks[0]?.enabled;
+        } else {
+            this.state.isVideoOn = !this.state.isVideoOn;
+        }
+        
+        this.updateControlButtons();
+        this.updateLocalParticipant();
+        this.showNotification(this.state.isVideoOn ? '📹 Камера включена' : '🚫 Камера выключена');
+    }
+
+    updateControlButtons() {
+        const micBtn = document.getElementById('micBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        
+        if (micBtn) {
+            micBtn.innerHTML = `<i class="fas fa-microphone${this.state.isMuted ? '-slash' : ''}"></i>`;
+            micBtn.className = `control-btn ${this.state.isMuted ? 'mic-off' : 'secondary'}`;
+            micBtn.setAttribute('data-tooltip', this.state.isMuted ? 'Включить микрофон' : 'Выключить микрофон');
+        }
+        
+        if (cameraBtn) {
+            cameraBtn.innerHTML = `<i class="fas fa-video${this.state.isVideoOn ? '' : '-slash'}"></i>`;
+            cameraBtn.className = `control-btn ${this.state.isVideoOn ? 'secondary' : 'camera-off'}`;
+            cameraBtn.setAttribute('data-tooltip', this.state.isVideoOn ? 'Выключить камеру' : 'Включить камеру');
+        }
+    }
+
+    updateLocalParticipant() {
+        const participant = document.getElementById('localParticipant');
+        if (!participant) return;
+
+        const statusIndicator = participant.querySelector('.status-indicator');
+        const micIcon = participant.querySelector('.participant-info i');
+        const deviceMic = participant.querySelector('.device-status .device-icon');
+        const deviceCamera = participant.querySelector('.device-status .device-icon:last-child');
+
+        if (statusIndicator) {
+            statusIndicator.className = `status-indicator ${this.state.isMuted ? 'status-muted' : 'status-online'}`;
+        }
+
+        if (micIcon) {
+            micIcon.className = `fas fa-microphone${this.state.isMuted ? '-slash' : ''}`;
+        }
+
+        if (deviceMic) {
+            deviceMic.className = `device-icon ${this.state.isMuted ? 'mic-off' : 'mic-on'}`;
+            deviceMic.innerHTML = `<i class="fas fa-microphone${this.state.isMuted ? '-slash' : ''}"></i>`;
+        }
+
+        if (deviceCamera) {
+            deviceCamera.className = `device-icon ${this.state.isVideoOn ? 'camera-on' : 'camera-off'}`;
+            deviceCamera.innerHTML = `<i class="fas fa-video${this.state.isVideoOn ? '' : '-slash'}"></i>`;
+        }
+
+        participant.className = `video-participant ${this.state.isMuted ? 'muted' : 'active'}`;
+    }
+
+    // Вспомогательные методы
+    addParticipant(user, isCurrentUser) {
+        const list = document.getElementById('participantsList');
+        list.innerHTML += `
+            <div class="participant-item">
+                <div class="participant-avatar-small">${user.avatar}</div>
+                <div class="participant-details">
+                    <div class="participant-name">
+                        ${isCurrentUser ? 'Вы' : user.name}
+                        ${isCurrentUser ? '<span class="status-indicator status-online"></span>' : ''}
+                    </div>
+                    <div class="participant-status ${isCurrentUser && this.state.isMuted ? 'muted' : ''}">
+                        <i class="fas fa-circle"></i>
+                        ${isCurrentUser ? (this.state.isMuted ? 'Микрофон выключен' : 'В сети') : 'В сети'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    startTimer() {
+        this.state.timerInterval = setInterval(() => {
+            this.state.timer++;
+            const min = Math.floor(this.state.timer / 60).toString().padStart(2, '0');
+            const sec = (this.state.timer % 60).toString().padStart(2, '0');
+            document.getElementById('callTimer').textContent = `${min}:${sec}`;
+        }, 1000);
+    }
+
+    showNotification(message, type = 'success') {
+        console.log('📢 Уведомление:', message);
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
+    }
+
+    generateCallId() {
+        return Math.random().toString(36).substring(2, 10);
+    }
+
+    cleanupOldCalls() {
+        const calls = JSON.parse(localStorage.getItem('pingr_calls') || '{}');
+        const now = Date.now();
+        const oneHour = 60 * 60 * 1000;
+
+        Object.keys(calls).forEach(callId => {
+            if (now - calls[callId].lastUpdated > oneHour) {
+                delete calls[callId];
+            }
+        });
+
+        localStorage.setItem('pingr_calls', JSON.stringify(calls));
+    }
+
+    // Обработчики событий
+    setupEventListeners() {
+        // Табы
+        document.querySelectorAll('.sidebar-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.currentTarget.dataset.tab;
+                document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                document.getElementById(tabName + 'Tab').classList.add('active');
+            });
+        });
+
+        // Управление
+        document.getElementById('micBtn').addEventListener('click', () => this.toggleMicrophone());
+        document.getElementById('cameraBtn').addEventListener('click', () => this.toggleCamera());
+        document.getElementById('endCallBtn').addEventListener('click', () => this.showEndCallModal());
+        document.getElementById('shareLinkBtn').addEventListener('click', () => this.showShareModal());
+
+        // Чат
+        document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendMessage());
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.sendMessage();
+        });
+
+        // Комната ожидания
+        document.getElementById('waitingRoomToggle').addEventListener('change', (e) => {
+            const callData = this.getCallData();
+            if (callData) {
+                this.saveCallData({
+                    ...callData,
+                    settings: { ...callData.settings, waitingRoom: e.target.checked }
+                });
+                this.showNotification(e.target.checked ? '✅ Комната ожидания включена' : '❌ Комната ожидания отключена');
+            }
+        });
+
+        // Модалки
+        document.getElementById('confirmEndCall').addEventListener('click', () => this.endCall());
+        document.getElementById('cancelEndCall').addEventListener('click', () => this.hideEndCallModal());
+        document.getElementById('copyLinkBtn').addEventListener('click', () => this.copyShareLink());
+        document.getElementById('closeShareModal').addEventListener('click', () => this.hideShareModal());
+
+        // Реакции
+        document.querySelectorAll('.reaction-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.showReaction(e.target.textContent || e.currentTarget.textContent);
+            });
+        });
+
+        // Адаптация для мобильных
+        this.setupMobileLayout();
+        window.addEventListener('resize', () => this.setupMobileLayout());
+    }
+
+    setupMobileLayout() {
+        const reactions = document.querySelector('.reactions-container');
+        const controls = document.querySelector('.controls-bar');
+        
+        if (window.innerWidth <= 768 && reactions && controls) {
+            // На мобильных - реакции под controls
+            if (!reactions.parentNode.isSameNode(controls)) {
+                controls.appendChild(reactions);
+                reactions.style.position = 'relative';
+                reactions.style.top = '0';
+                reactions.style.left = '0';
+                reactions.style.flexDirection = 'row';
+                reactions.style.justifyContent = 'center';
+                reactions.style.marginTop = '10px';
+                reactions.style.gap = '10px';
+            }
+        } else if (reactions) {
+            // На десктопе - реакции в левом верхнем углу
+            const videoSection = document.querySelector('.video-section');
+            if (!reactions.parentNode.isSameNode(videoSection)) {
+                videoSection.appendChild(reactions);
+                reactions.style.position = 'absolute';
+                reactions.style.top = '15px';
+                reactions.style.left = '15px';
+                reactions.style.flexDirection = 'column';
+            }
+        }
+    }
+
+    showReaction(reaction) {
+        const reactionElement = document.createElement('div');
+        reactionElement.textContent = reaction;
+        reactionElement.style.cssText = `
+            position: fixed;
+            font-size: 2rem;
+            z-index: 1000;
+            animation: floatUp 1.5s ease-out forwards;
+            pointer-events: none;
+        `;
+        
+        const x = Math.random() * window.innerWidth * 0.6 + window.innerWidth * 0.2;
+        reactionElement.style.left = x + 'px';
+        reactionElement.style.bottom = '100px';
+        
+        document.body.appendChild(reactionElement);
+        
+        setTimeout(() => {
+            reactionElement.remove();
+        }, 1500);
+    }
+
+    sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        const user = auth.currentUser || { displayName: 'Гость' };
+        const messages = document.getElementById('chatMessages');
+        
+        messages.innerHTML += `
+            <div class="message own">
+                <div class="message-sender">${user.displayName || 'Вы'}</div>
+                <div class="message-text">${message}</div>
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            </div>
+        `;
+        
+        input.value = '';
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    showShareModal() {
+        const link = `${window.location.origin}${window.location.pathname}?id=${this.state.callId}`;
+        document.getElementById('shareLinkInput').value = link;
+        document.getElementById('shareModal').style.display = 'flex';
+    }
+
+    hideShareModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+
+    showEndCallModal() {
+        document.getElementById('endCallModal').style.display = 'flex';
+    }
+
+    hideEndCallModal() {
+        document.getElementById('endCallModal').style.display = 'none';
+    }
+
+    copyShareLink() {
+        const input = document.getElementById('shareLinkInput');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        this.showNotification('📋 Ссылка скопирована в буфер обмена!');
+    }
+
+    endCall() {
+        // Останавливаем медиа
+        if (this.state.localStream) {
+            this.state.localStream.getTracks().forEach(track => track.stop());
+        }
+        
+        // Останавливаем таймеры
+        if (this.state.timerInterval) clearInterval(this.state.timerInterval);
+        if (this.syncInterval) clearInterval(this.syncInterval);
+        
+        // Очищаем данные
+        const calls = JSON.parse(localStorage.getItem('pingr_calls') || '{}');
+        delete calls[this.state.callId];
+        localStorage.setItem('pingr_calls', JSON.stringify(calls));
+        
+        this.showNotification('👋 Звонок завершен');
+        setTimeout(() => window.location.href = 'index.html', 1000);
+    }
 }
 
-function saveCallData(callData) {
-    localStorage.setItem('pingr_active_call', JSON.stringify(callData));
-}
-
-function updateCall(updates) {
-    const current = getCallData() || {};
-    const updated = { ...current, ...updates, lastUpdate: Date.now() };
-    saveCallData(updated);
-    return updated;
-}
+// Инициализация при загрузке
+let callManager;
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeCall();
-    setupEventListeners();
-    startSync();
+    callManager = new CallManager();
 });
-
-async function initializeCall() {
-    const urlParams = new URLSearchParams(window.location.search);
-    callState.callId = urlParams.get('id');
-    
-    if (!callState.callId) {
-        callState.callId = generateCallId();
-        callState.isHost = true;
-        window.history.replaceState({}, '', `?id=${callState.callId}`);
-    }
-
-    console.log('Call ID:', callState.callId, 'Host:', callState.isHost);
-
-    // Инициализация медиа
-    await initMedia();
-    
-    // Создание или подключение к звонку
-    const user = await getCurrentUser();
-    const userData = {
-        id: user?.uid || 'guest_' + Date.now(),
-        name: user?.displayName || user?.email || 'Гость',
-        avatar: (user?.displayName || user?.email || 'Г').charAt(0).toUpperCase()
-    };
-
-    if (callState.isHost) {
-        createCall(userData);
-    } else {
-        joinCall(userData);
-    }
-
-    updateUI();
-}
-
-function getCurrentUser() {
-    return new Promise(resolve => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
-            unsubscribe();
-            resolve(user);
-        });
-    });
-}
-
-async function initMedia() {
-    try {
-        callState.localStream = await navigator.mediaDevices.getUserMedia({ 
-            video: true, 
-            audio: true 
-        });
-        showVideo();
-    } catch (error) {
-        console.log('Media access denied');
-        showAvatar();
-        callState.isMuted = true;
-        callState.isVideoOn = false;
-    }
-    updateControlButtons();
-}
-
-function showVideo() {
-    const grid = document.getElementById('videoGrid');
-    grid.innerHTML = `
-        <div class="video-participant" id="localParticipant">
-            <video class="participant-video local-video" autoplay muted playsinline></video>
-            <div class="participant-info">
-                <span>Вы</span>
-                <i class="fas fa-microphone"></i>
-            </div>
-            <div class="device-status">
-                <div class="device-icon mic-on" id="deviceMic">
-                    <i class="fas fa-microphone"></i>
-                </div>
-                <div class="device-icon camera-on" id="deviceCamera">
-                    <i class="fas fa-video"></i>
-                </div>
-            </div>
-        </div>
-    `;
-    const video = grid.querySelector('video');
-    video.srcObject = callState.localStream;
-}
-
-function showAvatar() {
-    const grid = document.getElementById('videoGrid');
-    grid.innerHTML = `
-        <div class="video-participant" id="localParticipant">
-            <div class="participant-avatar">В</div>
-            <div class="participant-info">
-                <span>Вы</span>
-                <i class="fas fa-microphone-slash"></i>
-            </div>
-            <div class="device-status">
-                <div class="device-icon mic-off">
-                    <i class="fas fa-microphone-slash"></i>
-                </div>
-                <div class="device-icon camera-off">
-                    <i class="fas fa-video-slash"></i>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function createCall(host) {
-    const callData = {
-        id: callState.callId,
-        host: host,
-        participants: [host],
-        waitingUsers: [],
-        createdAt: Date.now(),
-        settings: {
-            waitingRoom: true
-        }
-    };
-    updateCall(callData);
-    showNotification('🎉 Вы создали звонок!');
-}
-
-function joinCall(user) {
-    const existingCall = getCallData();
-    
-    if (existingCall && existingCall.id === callState.callId) {
-        if (existingCall.settings.waitingRoom) {
-            // Добавляем в ожидание
-            const waitingUsers = [...(existingCall.waitingUsers || []), user];
-            updateCall({ waitingUsers });
-            callState.waitingUsers = waitingUsers;
-            showNotification('⏳ Ожидайте подтверждения от организатора');
-        } else {
-            // Добавляем сразу
-            const participants = [...(existingCall.participants || []), user];
-            updateCall({ participants });
-            showNotification('✅ Вы присоединились к звонку');
-        }
-    } else {
-        // Создаем новый если не нашли
-        callState.isHost = true;
-        createCall(user);
-    }
-}
-
-function startSync() {
-    // Таймер
-    callState.timerInterval = setInterval(() => {
-        callState.timer++;
-        const min = Math.floor(callState.timer / 60).toString().padStart(2, '0');
-        const sec = (callState.timer % 60).toString().padStart(2, '0');
-        document.getElementById('callTimer').textContent = `${min}:${sec}`;
-    }, 1000);
-
-    // Синхронизация данных
-    setInterval(() => {
-        const callData = getCallData();
-        if (callData && callData.id === callState.callId) {
-            updateUIFromData(callData);
-        }
-    }, 1000);
-}
-
-function updateUIFromData(callData) {
-    // Участники
-    if (callData.participants) {
-        updateParticipantsList(callData.participants);
-    }
-    
-    // Ожидание
-    if (callData.waitingUsers) {
-        callState.waitingUsers = callData.waitingUsers;
-        updateWaitingList();
-    }
-}
-
-function updateParticipantsList(participants) {
-    const container = document.getElementById('participantsList');
-    container.innerHTML = participants.map(user => `
-        <div class="participant-item">
-            <div class="participant-avatar-small">${user.avatar}</div>
-            <div class="participant-details">
-                <div class="participant-name">${user.name}</div>
-                <div class="participant-status">В сети</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function updateWaitingList() {
-    const container = document.getElementById('waitingList');
-    
-    if (callState.waitingUsers.length === 0) {
-        container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Нет ожидающих</p>';
-        return;
-    }
-
-    container.innerHTML = callState.waitingUsers.map(user => `
-        <div class="waiting-user">
-            <div class="waiting-user-info">
-                <div class="participant-avatar-small">${user.avatar}</div>
-                <div>
-                    <div class="participant-name">${user.name}</div>
-                    <div class="participant-status waiting">⏳ Ожидает</div>
-                </div>
-            </div>
-            ${callState.isHost ? `
-            <div class="waiting-actions">
-                <button class="action-btn accept-btn" onclick="acceptUser('${user.id}')">
-                    <i class="fas fa-check"></i>
-                </button>
-                <button class="action-btn reject-btn" onclick="rejectUser('${user.id}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            ` : ''}
-        </div>
-    `).join('');
-}
-
-function acceptUser(userId) {
-    const user = callState.waitingUsers.find(u => u.id === userId);
-    if (!user) return;
-
-    callState.waitingUsers = callState.waitingUsers.filter(u => u.id !== userId);
-    
-    const callData = getCallData();
-    const participants = [...(callData.participants || []), user];
-    
-    updateCall({ 
-        participants, 
-        waitingUsers: callState.waitingUsers 
-    });
-    
-    showNotification(`✅ ${user.name} принят в звонок`);
-}
-
-function rejectUser(userId) {
-    const user = callState.waitingUsers.find(u => u.id === userId);
-    if (!user) return;
-
-    callState.waitingUsers = callState.waitingUsers.filter(u => u.id !== userId);
-    updateCall({ waitingUsers: callState.waitingUsers });
-    showNotification(`❌ ${user.name} отклонен`);
-}
-
-function updateUI() {
-    updateControlButtons();
-    updateLocalParticipant();
-}
-
-function updateControlButtons() {
-    const micBtn = document.getElementById('micBtn');
-    const cameraBtn = document.getElementById('cameraBtn');
-    
-    if (micBtn) {
-        micBtn.innerHTML = `<i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>`;
-        micBtn.className = `control-btn ${callState.isMuted ? 'mic-off' : 'secondary'}`;
-    }
-    
-    if (cameraBtn) {
-        cameraBtn.innerHTML = `<i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>`;
-        cameraBtn.className = `control-btn ${callState.isVideoOn ? 'secondary' : 'camera-off'}`;
-    }
-}
-
-function updateLocalParticipant() {
-    const participant = document.getElementById('localParticipant');
-    if (!participant) return;
-
-    const micIcon = participant.querySelector('.participant-info i');
-    const deviceMic = participant.querySelector('#deviceMic');
-    const deviceCamera = participant.querySelector('#deviceCamera');
-
-    if (micIcon) {
-        micIcon.className = `fas fa-microphone${callState.isMuted ? '-slash' : ''}`;
-    }
-    
-    if (deviceMic) {
-        deviceMic.className = `device-icon ${callState.isMuted ? 'mic-off' : 'mic-on'}`;
-        deviceMic.innerHTML = `<i class="fas fa-microphone${callState.isMuted ? '-slash' : ''}"></i>`;
-    }
-    
-    if (deviceCamera) {
-        deviceCamera.className = `device-icon ${callState.isVideoOn ? 'camera-on' : 'camera-off'}`;
-        deviceCamera.innerHTML = `<i class="fas fa-video${callState.isVideoOn ? '' : '-slash'}"></i>`;
-    }
-}
-
-function setupEventListeners() {
-    // Табы
-    document.querySelectorAll('.sidebar-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabName = this.dataset.tab;
-            document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            document.getElementById(tabName + 'Tab').classList.add('active');
-        });
-    });
-
-    // Управление
-    document.getElementById('micBtn').addEventListener('click', toggleMicrophone);
-    document.getElementById('cameraBtn').addEventListener('click', toggleCamera);
-    document.getElementById('endCallBtn').addEventListener('click', showEndCallModal);
-    document.getElementById('shareLinkBtn').addEventListener('click', showShareModal);
-
-    // Чат
-    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
-    document.getElementById('chatInput').addEventListener('keypress', e => {
-        if (e.key === 'Enter') sendMessage();
-    });
-
-    // Модалки
-    document.getElementById('confirmEndCall').addEventListener('click', endCall);
-    document.getElementById('cancelEndCall').addEventListener('click', hideEndCallModal);
-    document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
-    document.getElementById('closeShareModal').addEventListener('click', hideShareModal);
-
-    // Адаптация для мобильных
-    setupMobileLayout();
-}
-
-function setupMobileLayout() {
-    // Перемещаем реакции на мобильных
-    if (window.innerWidth <= 768) {
-        const reactions = document.querySelector('.reactions-bar');
-        const controls = document.querySelector('.controls-bar');
-        if (reactions && controls) {
-            controls.appendChild(reactions);
-            reactions.style.position = 'relative';
-            reactions.style.top = '0';
-            reactions.style.right = '0';
-            reactions.style.marginTop = '10px';
-        }
-    }
-}
-
-function toggleMicrophone() {
-    if (!callState.localStream) {
-        callState.isMuted = !callState.isMuted;
-    } else {
-        const audioTracks = callState.localStream.getAudioTracks();
-        audioTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        callState.isMuted = !audioTracks[0]?.enabled;
-    }
-    
-    updateControlButtons();
-    updateLocalParticipant();
-    showNotification(callState.isMuted ? '🔇 Микрофон выключен' : '🎤 Микрофон включен');
-}
-
-function toggleCamera() {
-    if (!callState.localStream) {
-        callState.isVideoOn = !callState.isVideoOn;
-    } else {
-        const videoTracks = callState.localStream.getVideoTracks();
-        videoTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        callState.isVideoOn = !videoTracks[0]?.enabled;
-    }
-    
-    updateControlButtons();
-    updateLocalParticipant();
-    showNotification(callState.isVideoOn ? '📹 Камера включена' : '🚫 Камера выключена');
-}
-
-function showShareModal() {
-    const link = `${window.location.origin}${window.location.pathname}?id=${callState.callId}`;
-    document.getElementById('shareLinkInput').value = link;
-    document.getElementById('shareModal').style.display = 'flex';
-}
-
-function hideShareModal() {
-    document.getElementById('shareModal').style.display = 'none';
-}
-
-function showEndCallModal() {
-    document.getElementById('endCallModal').style.display = 'flex';
-}
-
-function hideEndCallModal() {
-    document.getElementById('endCallModal').style.display = 'none';
-}
-
-function copyShareLink() {
-    const input = document.getElementById('shareLinkInput');
-    input.select();
-    navigator.clipboard.writeText(input.value);
-    showNotification('📋 Ссылка скопирована!');
-}
-
-function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-    if (!message) return;
-
-    const user = auth.currentUser || { displayName: 'Гость' };
-    const messages = document.getElementById('chatMessages');
-    
-    messages.innerHTML += `
-        <div class="message own">
-            <div class="message-sender">${user.displayName || 'Вы'}</div>
-            <div class="message-text">${message}</div>
-            <div class="message-time">${new Date().toLocaleTimeString()}</div>
-        </div>
-    `;
-    
-    input.value = '';
-    messages.scrollTop = messages.scrollHeight;
-}
-
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 3000);
-}
-
-function generateCallId() {
-    return Math.random().toString(36).substring(2, 10);
-}
-
-function endCall() {
-    if (callState.localStream) {
-        callState.localStream.getTracks().forEach(track => track.stop());
-    }
-    
-    if (callState.timerInterval) {
-        clearInterval(callState.timerInterval);
-    }
-    
-    // Очищаем данные звонка
-    localStorage.removeItem('pingr_active_call');
-    
-    showNotification('👋 Звонок завершен');
-    setTimeout(() => window.location.href = 'index.html', 1000);
-}
-
-// Обработчик изменения размера окна
-window.addEventListener('resize', setupMobileLayout);
     </script>
 </body>
 </html>
