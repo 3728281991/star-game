@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pingr - Быстрые звонки. Быстрое решение.</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --accent: #ff4d8d;
+            --light: #ffffff;
+            --dark: #333333;
+            --gray: #f5f5f5;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--light);
+            width: 100%;
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            height: 80px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            width: 200px;
+            height: auto;
+            padding: 20px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 14px;
+        }
+
+        .login-btn {
+            background-color: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .login-btn:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .register-btn {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .register-btn:hover {
+            background-color: #5a0db8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(106, 17, 203, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 80px 20px 40px;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            max-width: 800px;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        .cta-btn {
+            background-color: var(--accent);
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin-bottom: 60px;
+            box-shadow: 0 4px 15px rgba(255, 77, 141, 0.4);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(255, 77, 141, 0.6);
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            max-width: 1000px;
+        }
+
+        .feature {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            width: 250px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+
+        .feature h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        /* How It Works Section */
+        .section {
+            padding: 80px 5%;
+            background-color: var(--light);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 60px;
+            color: var(--primary);
+        }
+
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 30px;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 250px;
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: 15px;
+            background-color: var(--gray);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            line-height: 50px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .step h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        /* Benefits Section */
+        .benefits {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        .benefits .section-title {
+            color: white;
+        }
+
+        .benefit-cards {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .benefit-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px 30px;
+            width: 300px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .benefit-card i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        .benefit-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 50px 5% 30px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            gap: 40px;
+        }
+
+        .footer-section {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .footer-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        .footer-links a {
+            display: block;
+            color: #ccc;
+            margin-bottom: 10px;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-icons a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .social-icons a:hover {
+            background-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            padding: 10px 0;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .user-menu:hover .user-dropdown {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray);
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.1rem;
+            }
+            
+            .features, .steps, .benefit-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .step, .benefit-card {
+                width: 100%;
+                max-width: 400px;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <img class="logo" src="/logo.jpg">
+        <div class="user-menu" id="userMenu" style="display: none;">
+            <div class="user-avatar" id="userAvatar">
+                <span id="userInitial">U</span>
+            </div>
+            <span class="user-name" id="userName">Пользователь</span>
+            <div class="user-dropdown" id="userDropdown">
+                <a href="#" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
+                <a href="#" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
+                <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Быстрые звонки. Быстрое решение. Pingr.</h1>
+        <p>Эффективные мини-звонки с AI-резюме для продуктивных команд</p>
+        <button class="cta-btn">Создать звонок</button>
+        
+        <div class="features">
+            <div class="feature">
+                <i class="fas fa-clock"></i>
+                <h3>Мини-звонки</h3>
+                <p>3–10 минут, без перегрузки</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-robot"></i>
+                <h3>AI-резюме</h3>
+                <p>Заметки автоматически после звонка</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-heart"></i>
+                <h3>Интерактивные реакции</h3>
+                <p>Лайки, вопросы, мини-опросы</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="section">
+        <h2 class="section-title">Как это работает</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Создай звонок</h3>
+                <p>Выбери участников и установи таймер</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Начни общение</h3>
+                <p>Голос или видео - как удобно</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Получай резюме</h3>
+                <p>AI подытоживает ключевые моменты</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Повтори или делись</h3>
+                <p>Легко переслать ссылку или запланировать новый звонок</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="section benefits">
+        <h2 class="section-title">Преимущества Pingr</h2>
+        <div class="benefit-cards">
+            <div class="benefit-card">
+                <i class="fas fa-bolt"></i>
+                <h3>Быстро</h3>
+                <p>Мгновенно создавай и подключайся к звонкам без задержек</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-chart-line"></i>
+                <h3>Понятно</h3>
+                <p>AI делает резюме и задачи, чтобы ничего не упустить</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-mobile-alt"></i>
+                <h3>Удобно</h3>
+                <p>Работает в любом браузере или мобильном устройстве</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Pingr</h3>
+                <p>Быстрые звонки для людей, которым важен результат.</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Ссылки</h3>
+                <div class="footer-links">
+                    <a href="#">О нас</a>
+                    <a href="#">Контакты</a>
+                    <a href="#">Политика конфиденциальности</a>
+                    <a href="#">Условия использования</a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Поддержка</h3>
+                <div class="footer-links">
+                    <a href="#">Центр помощи</a>
+                    <a href="#">Сообщить о проблеме</a>
+                    <a href="#">Статус системы</a>
+                    <a href="#">Обратная связь</a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2025 Pingr. Все права защищены.
+        </div>
+    </footer>
+
+    <script>
+        // Простая анимация при скролле
+        document.addEventListener('DOMContentLoaded', function() {
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+            
+            // Анимируем элементы при загрузке
+            const elementsToAnimate = document.querySelectorAll('.feature, .step, .benefit-card');
+            elementsToAnimate.forEach(el => {
+                el.style.opacity = 0;
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(el);
+            });
+            
+            
+        });
+
+        // Проверка авторизации и отображение пользователя
+        auth.onAuthStateChanged((user) => {
+            const userMenu = document.getElementById('userMenu');
+            const navButtons = document.querySelector('.nav-buttons');
+            
+            if (user) {
+                // Пользователь авторизован
+                navButtons.style.display = 'none';
+                userMenu.style.display = 'flex';
+                
+                // Устанавливаем имя и аватар
+                document.getElementById('userName').textContent = user.displayName || user.email;
+                document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
+            } else {
+                // Пользователь не авторизован
+                navButtons.style.display = 'flex';
+                userMenu.style.display = 'none';
+            }
+        });
+
+        // Выход из системы
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            auth.signOut().then(() => {
+                window.location.reload();
+            });
+        });
+    </script>
+</body>
+</html>
