@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pingr - Быстрые звонки. Быстрое решение.</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -26,6 +28,7 @@
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: var(--dark);
             line-height: 1.6;
+            padding-top: 80px;
         }
 
         /* Header */
@@ -49,9 +52,6 @@
             font-weight: 700;
             color: var(--primary);
             text-decoration: none;
-            width: 200px;
-            height: auto;
-            padding: 20px;
         }
 
         .nav-buttons {
@@ -91,6 +91,68 @@
             box-shadow: 0 4px 8px rgba(106, 17, 203, 0.3);
         }
 
+        .user-menu {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            padding: 10px 0;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .user-menu:hover .user-dropdown {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray);
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            color: var(--primary);
+        }
+
         /* Hero Section */
         .hero {
             min-height: 100vh;
@@ -100,7 +162,7 @@
             align-items: center;
             text-align: center;
             color: white;
-            padding: 80px 20px 40px;
+            padding: 40px 20px;
         }
 
         .hero h1 {
@@ -337,68 +399,6 @@
             font-size: 0.9rem;
         }
 
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            position: relative;
-            cursor: pointer;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .user-name {
-            font-weight: 500;
-            color: var(--dark);
-        }
-
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            padding: 10px 0;
-            min-width: 180px;
-            display: none;
-            z-index: 1000;
-        }
-
-        .user-menu:hover .user-dropdown {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 20px;
-            color: var(--dark);
-            text-decoration: none;
-            transition: background 0.3s ease;
-        }
-
-        .dropdown-item:hover {
-            background: var(--gray);
-        }
-
-        .dropdown-item i {
-            width: 16px;
-            color: var(--primary);
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
             .hero h1 {
@@ -428,13 +428,17 @@
 <body>
     <!-- Header -->
     <header>
-        <img class="logo" src="/logo.jpg">
-        <div class="user-menu" id="userMenu" style="display: none;">
+        <a href="#" class="logo">Pingr</a>
+        <div class="nav-buttons">
+            <button class="btn login-btn" onclick="window.location.href='loginh.html'">Войти</button>
+            <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
+        </div>
+        <div class="user-menu" id="userMenu">
             <div class="user-avatar" id="userAvatar">
                 <span id="userInitial">U</span>
             </div>
             <span class="user-name" id="userName">Пользователь</span>
-            <div class="user-dropdown" id="userDropdown">
+            <div class="user-dropdown">
                 <a href="#" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
                 <a href="#" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
                 <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
@@ -446,7 +450,7 @@
     <section class="hero">
         <h1>Быстрые звонки. Быстрое решение. Pingr.</h1>
         <p>Эффективные мини-звонки с AI-резюме для продуктивных команд</p>
-        <button class="cta-btn">Создать звонок</button>
+        <button class="cta-btn" id="createCallBtn">Создать звонок</button>
         
         <div class="features">
             <div class="feature">
@@ -554,8 +558,23 @@
     </footer>
 
     <script>
-        // Простая анимация при скролле
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
+            authDomain: "video-call-94d0b.firebaseapp.com",
+            projectId: "video-call-94d0b",
+            storageBucket: "video-call-94d0b.firebasestorage.app",
+            messagingSenderId: "973586453149",
+            appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
+            measurementId: "G-TVLP5WTJGP"
+        };
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Анимации
             const observerOptions = {
                 threshold: 0.1,
                 rootMargin: '0px 0px -50px 0px'
@@ -570,7 +589,6 @@
                 });
             }, observerOptions);
             
-            // Анимируем элементы при загрузке
             const elementsToAnimate = document.querySelectorAll('.feature, .step, .benefit-card');
             elementsToAnimate.forEach(el => {
                 el.style.opacity = 0;
@@ -578,35 +596,40 @@
                 el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                 observer.observe(el);
             });
-            
-            
-        });
 
-        // Проверка авторизации и отображение пользователя
-        auth.onAuthStateChanged((user) => {
-            const userMenu = document.getElementById('userMenu');
-            const navButtons = document.querySelector('.nav-buttons');
-            
-            if (user) {
-                // Пользователь авторизован
-                navButtons.style.display = 'none';
-                userMenu.style.display = 'flex';
+            // Проверка авторизации
+            auth.onAuthStateChanged((user) => {
+                const userMenu = document.getElementById('userMenu');
+                const navButtons = document.querySelector('.nav-buttons');
                 
-                // Устанавливаем имя и аватар
-                document.getElementById('userName').textContent = user.displayName || user.email;
-                document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
-            } else {
-                // Пользователь не авторизован
-                navButtons.style.display = 'flex';
-                userMenu.style.display = 'none';
-            }
-        });
+                if (user) {
+                    navButtons.style.display = 'none';
+                    userMenu.style.display = 'flex';
+                    document.getElementById('userName').textContent = user.displayName || user.email;
+                    document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
+                } else {
+                    navButtons.style.display = 'flex';
+                    userMenu.style.display = 'none';
+                }
+            });
 
-        // Выход из системы
-        document.getElementById('logoutBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            auth.signOut().then(() => {
-                window.location.reload();
+            // Выход
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                auth.signOut().then(() => {
+                    window.location.reload();
+                });
+            });
+
+            // Создание звонка
+            document.getElementById('createCallBtn').addEventListener('click', function() {
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        alert('Функция создания звонка будет доступна скоро!');
+                    } else {
+                        window.location.href = 'auth.html';
+                    }
+                });
             });
         });
     </script>
