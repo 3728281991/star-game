@@ -529,4 +529,24 @@
                 document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
             } else {
                 navButtons.style.display = 'flex';
-                userMenu.style.display = '
+                userMenu.style.display = 'none';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            auth.signOut().then(() => {
+                window.location.reload();
+            });
+        });
+
+        // FAQ functionality
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                item.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>
