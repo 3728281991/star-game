@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Звонок - Pingr</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --accent: #ff4d8d;
+            --light: #ffffff;
+            --dark: #333333;
+            --gray: #f5f5f5;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+
+        body {
+            background: #1a1a1a;
+            color: var(--light);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Call Layout */
+        .call-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Video Section */
+        .video-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            position: relative;
+        }
+
+        .call-header {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .call-info h1 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: white;
+        }
+
+        .call-timer {
+            font-size: 1rem;
+            color: #ccc;
+        }
+
+        .call-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .video-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            padding: 20px;
+            align-content: start;
+        }
+
+        .video-participant {
+            background: #2a2a2a;
+            border-radius: 10px;
+            position: relative;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .participant-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .participant-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .participant-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .controls-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 30px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn.primary {
+            background: var(--light);
+            color: var(--dark);
+        }
+
+        .control-btn.secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .control-btn.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn.muted {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Sidebar */
+        .call-sidebar {
+            width: 350px;
+            background: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #444;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            background: #333;
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .sidebar-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .sidebar-tab:hover {
+            background: #3a3a3a;
+        }
+
+        .tab-content {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Participants Tab */
+        .participants-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #333;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .participant-avatar-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .participant-details {
+            flex: 1;
+        }
+
+        .participant-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .participant-status {
+            font-size: 0.8rem;
+            color: #0f0;
+        }
+
+        .participant-status.muted {
+            color: #f00;
+        }
+
+        /* Chat Tab */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 15px;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .message.own {
+            align-self: flex-end;
+            background: var(--primary);
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background: #444;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-sender {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .message-text {
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #444;
+        }
+
+        .chat-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-field {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #555;
+            border-radius: 20px;
+            background: #333;
+            color: white;
+            font-size: 14px;
+        }
+
+        .chat-send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* AI Notes Tab */
+        .ai-notes {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .ai-summary {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ai-summary h4 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-points {
+            list-style: none;
+        }
+
+        .summary-points li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .summary-points li::before {
+            content: "•";
+            color: var(--accent);
+            position: absolute;
+            left: 0;
+        }
+
+        .action-items {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .action-items h4 {
+            color: var(--success);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Reactions */
+        .reactions-bar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .reaction-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .reaction-btn:hover {
+            transform: scale(1.2);
+            background: var(--accent);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn.secondary {
+            background: #444;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .call-container {
+                flex-direction: column;
+            }
+            
+            .call-sidebar {
+                width: 100%;
+                height: 40vh;
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-bar {
+                bottom: 10px;
+                padding: 10px 15px;
+            }
+            
+            .control-btn {
+                width: 45px;
+                height: 45px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="call-container">
+        <!-- Video Section -->
+        <div class="video-section">
+            <!-- Call Header -->
+            <div class="call-header">
+                <div class="call-info">
+                    <h1 id="callTitle">Еженедельный стендап</h1>
+                    <div class="call-timer" id="callTimer">00:00</div>
+                </div>
+                <div class="call-actions">
+                    <button class="header-btn" id="shareLinkBtn">
+                        <i class="fas fa-link"></i> Поделиться
+                    </button>
+                    <button class="header-btn" id="settingsBtn">
+                        <i class="fas fa-cog"></i> Настройки
+                    </button>
+                </div>
+            </div>
+
+            <!-- Video Grid -->
+            <div class="video-grid" id="videoGrid">
+                <!-- Participants will be added here dynamically -->
+                <div class="video-participant">
+                    <div class="participant-avatar" id="mainUserAvatar">U</div>
+                    <div class="participant-info">
+                        <span id="mainUserName">Вы</span>
+                        <i class="fas fa-microphone" id="mainUserMic"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reactions -->
+            <div class="reactions-bar">
+                <button class="reaction-btn" title="Нравится">👍</button>
+                <button class="reaction-btn" title="Не нравится">👎</button>
+                <button class="reaction-btn" title="Вопрос">❓</button>
+                <button class="reaction-btn" title="Аплодисменты">👏</button>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-bar">
+                <button class="control-btn secondary" id="micBtn" title="Микрофон">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="control-btn secondary" id="cameraBtn" title="Камера">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button class="control-btn secondary" id="screenShareBtn" title="Демонстрация экрана">
+                    <i class="fas fa-desktop"></i>
+                </button>
+                <button class="control-btn secondary" id="participantsBtn" title="Участники">
+                    <i class="fas fa-users"></i>
+                </button>
+                <button class="control-btn danger" id="endCallBtn" title="Завершить звонок">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="call-sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="participants">
+                    <i class="fas fa-users"></i>
+                </button>
+                <button class="sidebar-tab" data-tab="chat">
+                    <i class="fas fa-comments"></i>
+                </button>
+                <button class="sidebar-tab" data-tab="ai-notes">
+                    <i class="fas fa-robot"></i>
+                </button>
+            </div>
+
+            <!-- Participants Tab -->
+            <div class="tab-content active" id="participantsTab">
+                <div class="participants-list">
+                    <div class="participant-item">
+                        <div class="participant-avatar-small">U</div>
+                        <div class="participant-details">
+                            <div class="participant-name">Вы</div>
+                            <div class="participant-status" id="userStatus">Говорите</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Tab -->
+            <div class="tab-content" id="chatTab">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message other">
+                        <div class="message-sender">AI Ассистент</div>
+                        <div class="message-text">Звонок начался! AI будет создавать заметки в реальном времени.</div>
+                        <div class="message-time">12:00</div>
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <div class="chat-input-group">
+                        <input type="text" class="chat-input-field" id="chatInput" placeholder="Написать сообщение...">
+                        <button class="chat-send-btn" id="sendMessageBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Notes Tab -->
+            <div class="tab-content" id="aiNotesTab">
+                <div class="ai-notes">
+                    <div class="ai-summary">
+                        <h4><i class="fas fa-brain"></i> Ключевые моменты</h4>
+                        <ul class="summary-points" id="aiSummaryPoints">
+                            <li>Обсуждение еженедельных результатов</li>
+                            <li>Планирование задач на следующую неделю</li>
+                        </ul>
+                    </div>
+                    <div class="action-items">
+                        <h4><i class="fas fa-tasks"></i> Задачи</h4>
+                        <ul class="summary-points" id="aiActionItems">
+                            <li>Подготовить отчет по продажам</li>
+                            <li>Запланировать встречу с клиентом</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Call Modal -->
+    <div class="modal-overlay" id="endCallModal" style="display: none;">
+        <div class="modal-content">
+            <h3>Завершить звонок?</h3>
+            <p>Все участники будут отключены от звонка.</p>
+            <div class="modal-actions">
+                <button class="btn primary" id="confirmEndCall">Завершить</button>
+                <button class="btn secondary" id="cancelEndCall">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Link Modal -->
+    <div class="modal-overlay" id="shareLinkModal" style="display: none;">
+        <div class="modal-content">
+            <h3>Поделиться ссылкой</h3>
+            <p>Отправьте эту ссылку участникам:</p>
+            <div style="display: flex; gap: 10px; margin: 20px 0;">
+                <input type="text" id="shareLinkInput" readonly style="flex:1; padding:10px; border-radius:5px; background:#333; color:white; border:1px solid #555;">
+                <button class="btn primary" id="copyLinkBtn">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <button class="btn secondary" id="closeShareModal">Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
+            authDomain: "video-call-94d0b.firebaseapp.com",
+            projectId: "video-call-94d0b",
+            storageBucket: "video-call-94d0b.firebasestorage.app",
+            messagingSenderId: "973586453149",
+            appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
+            measurementId: "G-TVLP5WTJGP"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Call state
+        let callState = {
+            isMuted: false,
+            isVideoOn: true,
+            isScreenSharing: false,
+            timer: 0,
+            timerInterval: null,
+            participants: []
+        };
+
+        // Initialize call
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCall();
+            setupEventListeners();
+            startTimer();
+            loadCallSettings();
+        });
+
+        function initializeCall() {
+            // Check authentication
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    document.getElementById('mainUserAvatar').textContent = 
+                        (user.displayName || user.email).charAt(0).toUpperCase();
+                    document.getElementById('mainUserName').textContent = user.displayName || 'Вы';
+                    
+                    // Add current user to participants
+                    addParticipant({
+                        id: user.uid,
+                        name: user.displayName || user.email,
+                        email: user.email,
+                        isCurrentUser: true
+                    });
+                } else {
+                    // Redirect to auth if not logged in
+                    window.location.href = 'auth.html';
+                }
+            });
+
+            // Add some demo participants
+            setTimeout(() => {
+                addParticipant({ id: '2', name: 'Анна Иванова', email: 'anna@example.com' });
+                addParticipant({ id: '3', name: 'Петр Сидоров', email: 'petr@example.com' });
+            }, 2000);
+        }
+
+        function loadCallSettings() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const callId = urlParams.get('id');
+            const callType = urlParams.get('type');
+            const duration = urlParams.get('duration');
+
+            // Load from localStorage
+            const savedCall = localStorage.getItem('currentCall');
+            if (savedCall) {
+                const callSettings = JSON.parse(savedCall);
+                document.getElementById('callTitle').textContent = callSettings.title;
+                
+                if (callSettings.duration !== '0') {
+                    // Set timer limit if duration is specified
+                    callState.durationLimit = parseInt(callSettings.duration) * 60;
+                }
+            }
+        }
+
+        function setupEventListeners() {
+            // Tab switching
+            document.querySelectorAll('.sidebar-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    
+                    // Update tabs
+                    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabName + 'Tab').classList.add('active');
+                });
+            });
+
+            // Control buttons
+            document.getElementById('micBtn').addEventListener('click', toggleMicrophone);
+            document.getElementById('cameraBtn').addEventListener('click', toggleCamera);
+            document.getElementById('screenShareBtn').addEventListener('click', toggleScreenShare);
+            document.getElementById('endCallBtn').addEventListener('click', showEndCallModal);
+
+            // Header buttons
+            document.getElementById('shareLinkBtn').addEventListener('click', showShareModal);
+            document.getElementById('settingsBtn').addEventListener('click', showSettings);
+
+            // Chat
+            document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+            document.getElementById('chatInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Modal actions
+            document.getElementById('confirmEndCall').addEventListener('click', endCall);
+            document.getElementById('cancelEndCall').addEventListener('click', hideEndCallModal);
+            document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
+            document.getElementById('closeShareModal').addEventListener('click', hideShareModal);
+
+            // Reactions
+            document.querySelectorAll('.reaction-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showReaction(this.textContent);
+                });
+            });
+        }
+
+        function toggleMicrophone() {
+            callState.isMuted = !callState.isMuted;
+            const micBtn = document.getElementById('micBtn');
+            const micIcon = document.getElementById('mainUserMic');
+            
+            if (callState.isMuted) {
+                micBtn.classList.add('muted');
+                micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                micIcon.className = 'fas fa-microphone-slash';
+                document.getElementById('userStatus').textContent = 'Микрофон выключен';
+            } else {
+                micBtn.classList.remove('muted');
+                micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                micIcon.className = 'fas fa-microphone';
+                document.getElementById('userStatus').textContent = 'Говорите';
+            }
+        }
+
+        function toggleCamera() {
+            callState.isVideoOn = !callState.isVideoOn;
+            const cameraBtn = document.getElementById('cameraBtn');
+            
+            if (callState.isVideoOn) {
+                cameraBtn.innerHTML = '<i class="fas fa-video"></i>';
+            } else {
+                cameraBtn.innerHTML = '<i class="fas fa-video-slash"></i>';
+            }
+        }
+
+        function toggleScreenShare() {
+            callState.isScreenSharing = !callState.isScreenSharing;
+            const screenShareBtn = document.getElementById('screenShareBtn');
+            
+            if (callState.isScreenSharing) {
+                screenShareBtn.style.background = var(--accent);
+                screenShareBtn.style.color = 'white';
+            } else {
+                screenShareBtn.style.background = '';
+                screenShareBtn.style.color = '';
+            }
+        }
+
+        function showEndCallModal() {
+            document.getElementById('endCallModal').style.display = 'flex';
+        }
+
+        function hideEndCallModal() {
+            document.getElementById('endCallModal').style.display = 'none';
+        }
+
+        function showShareModal() {
+            const currentUrl = window.location.href;
+            document.getElementById('shareLinkInput').value = currentUrl;
+            document.getElementById('shareLinkModal').style.display = 'flex';
+        }
+
+        function hideShareModal() {
+            document.getElementById('shareLinkModal').style.display = 'none';
+        }
+
+        function copyShareLink() {
+            const linkInput = document.getElementById('shareLinkInput');
+            linkInput.select();
+            document.execCommand('copy');
+            
+            const copyBtn = document.getElementById('copyLinkBtn');
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+            }, 2000);
+        }
+
+        function showSettings() {
+            alert('Настройки звонка будут доступны в полной версии');
+        }
+
+        function startTimer() {
+            callState.timerInterval = setInterval(() => {
+                callState.timer++;
+                updateTimerDisplay();
+                
+                // Check duration limit
+                if (callState.durationLimit && callState.timer >= callState.durationLimit) {
+                    endCall();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(callState.timer / 60).toString().padStart(2, '0');
+            const seconds = (callState.timer % 60).toString().padStart(2, '0');
+            document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+        }
+
+        function addParticipant(participant) {
+            callState.participants.push(participant);
+            
+            if (!participant.isCurrentUser) {
+                // Add to video grid
+                const videoGrid = document.getElementById('videoGrid');
+                const participantHTML = `
+                    <div class="video-participant" id="participant-${participant.id}">
+                        <div class="participant-avatar">${participant.name.charAt(0).toUpperCase()}</div>
+                        <div class="participant-info">
+                            <span>${participant.name}</span>
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                    </div>
+                `;
+                videoGrid.insertAdjacentHTML('beforeend', participantHTML);
+                
+                // Add to participants list
+                const participantsList = document.querySelector('.participants-list');
+                const participantItemHTML = `
+                    <div class="participant-item">
+                        <div class="participant-avatar-small">${participant.name.charAt(0).toUpperCase()}</div>
+                        <div class="participant-details">
+                            <div class="participant-name">${participant.name}</div>
+                            <div class="participant-status">В сети</div>
+                        </div>
+                    </div>
+                `;
+                participantsList.insertAdjacentHTML('beforeend', participantItemHTML);
+            }
+        }
+
+        function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const message = chatInput.value.trim();
+            
+            if (message) {
+                const chatMessages = document.getElementById('chatMessages');
+                const messageHTML = `
+                    <div class="message own">
+                        <div class="message-sender">Вы</div>
+                        <div class="message-text">${message}</div>
+                        <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</div>
+                    </div>
+                `;
+                chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+                chatInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Simulate AI response for demo
+                simulateAIResponse(message);
+            }
+        }
+
+        function simulateAIResponse(userMessage) {
+            setTimeout(() => {
+                const chatMessages = document.getElementById('chatMessages');
+                let aiResponse = '';
+                
+                if (userMessage.toLowerCase().includes('привет') || userMessage.toLowerCase().includes('hello')) {
+                    aiResponse = 'Привет! Я AI-ассистент Pingr. Помогаю делать заметки во время звонка.';
+                } else if (userMessage.toLowerCase().includes('задача') || userMessage.toLowerCase().includes('task')) {
+                    aiResponse = 'Задача добавлена в список действий!';
+                    addActionItem('Новая задача из чата');
+                } else if (userMessage.toLowerCase().includes('резюме') || userMessage.toLowerCase().includes('summary')) {
+                    aiResponse = 'Обновляю ключевые моменты встречи...';
+                    updateAISummary();
+                } else {
+                    aiResponse = 'Записал это в заметки. Продолжайте обсуждение!';
+                }
+                
+                const messageHTML = `
+                    <div class="message other">
+                        <div class="message-sender">AI Ассистент</div>
+                        <div class="message-text">${aiResponse}</div>
+                        <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</div>
+                    </div>
+                `;
+                chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+        }
+
+        function addActionItem(task) {
+            const actionItems = document.getElementById('aiActionItems');
+            const itemHTML = `<li>${task}</li>`;
+            actionItems.insertAdjacentHTML('beforeend', itemHTML);
+        }
+
+        function updateAISummary() {
+            const summaryPoints = document.getElementById('aiSummaryPoints');
+            const newPoint = `<li>Новый ключевой момент обсуждения</li>`;
+            summaryPoints.insertAdjacentHTML('beforeend', newPoint);
+        }
+
+        function showReaction(reaction) {
+            // Create floating reaction
+            const reactionElement = document.createElement('div');
+            reactionElement.textContent = reaction;
+            reactionElement.style.cssText = `
+                position: fixed;
+                font-size: 2rem;
+                z-index: 1000;
+                animation: floatUp 2s ease-out forwards;
+                pointer-events: none;
+            `;
+            
+            // Random position
+            const x = Math.random() * window.innerWidth * 0.6 + window.innerWidth * 0.2;
+            reactionElement.style.left = x + 'px';
+            reactionElement.style.bottom = '100px';
+            
+            document.body.appendChild(reactionElement);
+            
+            // Remove after animation
+            setTimeout(() => {
+                reactionElement.remove();
+            }, 2000);
+        }
+
+        function endCall() {
+            clearInterval(callState.timerInterval);
+            
+            // Show call summary before redirecting
+            alert('Звонок завершен! AI-резюме готово.');
+            
+            // Redirect to main page
+            window.location.href = 'index.html';
+        }
+
+        // Add CSS for reaction animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes floatUp {
+                0% {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-100px) scale(0.5);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
