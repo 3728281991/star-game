@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Присоединиться к звонку - Pingr</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --accent: #ff4d8d;
+            --light: #ffffff;
+            --dark: #333333;
+            --gray: #f5f5f5;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--light);
+            width: 100%;
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            font-size: 28px;
+        }
+
+        .back-btn {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .join-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .join-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .join-header h1 {
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .join-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .join-icon {
+            font-size: 3rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        /* Form Styles */
+        .join-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group label i {
+            color: var(--primary);
+            width: 20px;
+        }
+
+        .form-group input {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        /* Settings Section */
+        .settings-section {
+            background: var(--gray);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .settings-section h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .setting-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .setting-option:last-child {
+            border-bottom: none;
+        }
+
+        .setting-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .setting-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .setting-text h4 {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .setting-text p {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        /* Join Button */
+        .join-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .join-btn:hover {
+            background: #ff3d7f;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 77, 141, 0.3);
+        }
+
+        .join-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 30px 5%;
+            text-align: center;
+        }
+
+        .copyright {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .join-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .join-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .main-content {
+                padding: 20px 10px;
+            }
+
+            .setting-option {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .toggle-switch {
+                align-self: flex-end;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .join-container {
+                padding: 20px 15px;
+            }
+
+            .join-header h1 {
+                font-size: 1.6rem;
+            }
+
+            .settings-section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="index.html" class="logo">
+            <i class="fas fa-video"></i>
+            Pingr
+        </a>
+        <a href="index.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            На главную
+        </a>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="join-container">
+            <div class="join-header">
+                <div class="join-icon">
+                    <i class="fas fa-phone"></i>
+                </div>
+                <h1>Присоединиться к звонку</h1>
+                <p>Введите ссылку и настройте параметры входа</p>
+            </div>
+
+            <form class="join-form" id="joinForm">
+                <div class="form-group">
+                    <label for="callLink">
+                        <i class="fas fa-link"></i>
+                        Ссылка на звонок
+                    </label>
+                    <input type="url" id="callLink" placeholder="https://pingr.call/abc123" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="userName">
+                        <i class="fas fa-user"></i>
+                        Ваше имя
+                    </label>
+                    <input type="text" id="userName" placeholder="Введите ваше имя" required>
+                </div>
+
+                <div class="settings-section">
+                    <h3>
+                        <i class="fas fa-cog"></i>
+                        Настройки входа
+                    </h3>
+                    <div class="settings-options">
+                        <div class="setting-option">
+                            <div class="setting-info">
+                                <div class="setting-icon">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <div class="setting-text">
+                                    <h4>Микрофон</h4>
+                                    <p>Включить звук при входе</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="microphoneToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-option">
+                            <div class="setting-info">
+                                <div class="setting-icon">
+                                    <i class="fas fa-video"></i>
+                                </div>
+                                <div class="setting-text">
+                                    <h4>Камера</h4>
+                                    <p>Включить видео при входе</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="cameraToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-option">
+                            <div class="setting-info">
+                                <div class="setting-icon">
+                                    <i class="fas fa-desktop"></i>
+                                </div>
+                                <div class="setting-text">
+                                    <h4>Демонстрация экрана</h4>
+                                    <p>Разрешить показ экрана</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="screenShareToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="join-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Присоединиться к звонку
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="copyright">
+            &copy; 2025 Pingr. Все права защищены.
+        </div>
+    </footer>
+
+    <script>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyANFrL2VWIFd6sczmTZjqnd9I1eQHNoo-c",
+            authDomain: "video-call-94d0b.firebaseapp.com",
+            projectId: "video-call-94d0b",
+            storageBucket: "video-call-94d0b.firebasestorage.app",
+            messagingSenderId: "973586453149",
+            appId: "1:973586453149:web:f9c25c10ec53d5395e7a74",
+            measurementId: "G-TVLP5WTJGP"
+        };
+        
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const joinForm = document.getElementById('joinForm');
+            const callLinkInput = document.getElementById('callLink');
+            const userNameInput = document.getElementById('userName');
+
+            // Проверка авторизации
+            auth.onAuthStateChanged((user) => {
+                if (user && userNameInput.value === '') {
+                    // Автоматически заполняем имя пользователя, если авторизован
+                    userNameInput.value = user.displayName || '';
+                }
+            });
+
+            // Обработка отправки формы
+            joinForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const callLink = callLinkInput.value.trim();
+                const userName = userNameInput.value.trim();
+                const microphoneEnabled = document.getElementById('microphoneToggle').checked;
+                const cameraEnabled = document.getElementById('cameraToggle').checked;
+                const screenShareEnabled = document.getElementById('screenShareToggle').checked;
+
+                // Валидация ссылки
+                if (!isValidCallLink(callLink)) {
+                    alert('Пожалуйста, введите корректную ссылку на звонок');
+                    return;
+                }
+
+                // Валидация имени
+                if (!userName) {
+                    alert('Пожалуйста, введите ваше имя');
+                    return;
+                }
+
+                // Сохраняем настройки в localStorage
+                const joinSettings = {
+                    userName: userName,
+                    microphoneEnabled: microphoneEnabled,
+                    cameraEnabled: cameraEnabled,
+                    screenShareEnabled: screenShareEnabled,
+                    callLink: callLink
+                };
+                
+                localStorage.setItem('pingrJoinSettings', JSON.stringify(joinSettings));
+
+                // Здесь будет переход на страницу звонка
+                joinCall(callLink, joinSettings);
+            });
+
+            // Функция валидации ссылки
+            function isValidCallLink(link) {
+                // Простая проверка URL
+                try {
+                    const url = new URL(link);
+                    return url.protocol === 'http:' || url.protocol === 'https:';
+                } catch {
+                    return false;
+                }
+            }
+
+            // Функция присоединения к звонку
+            function joinCall(callLink, settings) {
+                // В реальном приложении здесь будет логика подключения к звонку
+                console.log('Присоединение к звонку:', callLink);
+                console.log('Настройки:', settings);
+                
+                // Показываем сообщение об успехе
+                alert(`Присоединение к звонку...\nИмя: ${settings.userName}\nКамера: ${settings.cameraEnabled ? 'Вкл' : 'Выкл'}\nМикрофон: ${settings.microphoneEnabled ? 'Вкл' : 'Выкл'}`);
+                
+                // В реальном приложении здесь будет редирект на страницу звонка
+                // window.location.href = `call.html?link=${encodeURIComponent(callLink)}`;
+            }
+
+            // Загрузка сохраненных настроек
+            const savedSettings = localStorage.getItem('pingrJoinSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                userNameInput.value = settings.userName || '';
+                document.getElementById('microphoneToggle').checked = settings.microphoneEnabled !== false;
+                document.getElementById('cameraToggle').checked = settings.cameraEnabled !== false;
+                document.getElementById('screenShareToggle').checked = settings.screenShareEnabled || false;
+            }
+        });
+    </script>
+</body>
+</html>
