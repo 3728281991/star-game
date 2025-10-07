@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -412,6 +413,109 @@
             color: var(--primary);
         }
 
+        /* Call Page Styles */
+        .call-container {
+            display: none;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            background: #1a1a1a;
+            position: relative;
+        }
+
+        .video-container {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .video-wrapper {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #333;
+        }
+
+        .video-wrapper.local {
+            border: 2px solid var(--accent);
+        }
+
+        .video-wrapper.remote {
+            border: 2px solid var(--primary);
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(0,0,0,0.8);
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn.mute {
+            background: #ff4757;
+            color: white;
+        }
+
+        .control-btn.video {
+            background: #2ed573;
+            color: white;
+        }
+
+        .control-btn.end-call {
+            background: #ff4757;
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .call-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
         /* Footer */
         footer {
             background-color: var(--dark);
@@ -494,6 +598,7 @@
             .timer-options { flex-direction: column; }
             .form-actions { flex-direction: column; }
             .footer-content { flex-direction: column; }
+            .video-wrapper { min-width: 100%; }
         }
     </style>
 </head>
@@ -501,8 +606,8 @@
     <header>
         <a href="index.html" class="logo">Pingr</a>
         <div class="nav-buttons">
-            <button class="btn login-btn" onclick="window.location.href='auth.html'">Войти</button>
-            <button class="btn register-btn" onclick="window.location.href='auth.html'">Регистрация</button>
+            <button class="btn login-btn" onclick="window.location.href='login.html'">Войти</button>
+            <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
         </div>
         <div class="user-menu" id="userMenu">
             <div class="user-avatar" id="userAvatar">
@@ -581,11 +686,11 @@
                 <h3>Основная информация</h3>
                 <div class="form-group">
                     <label class="form-label">Название звонка *</label>
-                    <input type="text" class="form-input" placeholder="Например: Еженедельный стендап" required>
+                    <input type="text" class="form-input" id="callTitle" placeholder="Например: Еженедельный стендап" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Описание (опционально)</label>
-                    <textarea class="form-textarea" placeholder="О чем будет этот звонок?"></textarea>
+                    <textarea class="form-textarea" id="callDescription" placeholder="О чем будет этот звонок?"></textarea>
                 </div>
             </div>
 
@@ -636,6 +741,35 @@
         </form>
     </section>
 
+    <!-- Call Page -->
+    <div class="call-container" id="callContainer">
+        <div class="call-info" id="callInfo">
+            <div id="callTitleInfo">Название звонка</div>
+            <div id="callDuration">00:00</div>
+        </div>
+        <div class="video-container" id="videoContainer">
+            <div class="video-wrapper local">
+                <video id="localVideo" autoplay muted></video>
+                <div class="video-label">Вы</div>
+            </div>
+            <div class="video-wrapper remote">
+                <video id="remoteVideo" autoplay></video>
+                <div class="video-label">Участник</div>
+            </div>
+        </div>
+        <div class="call-controls">
+            <button class="control-btn mute" id="muteBtn">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button class="control-btn video" id="videoBtn">
+                <i class="fas fa-video"></i>
+            </button>
+            <button class="control-btn end-call" id="endCallBtn">
+                <i class="fas fa-phone"></i>
+            </button>
+        </div>
+    </div>
+
     <footer>
         <div class="footer-content">
             <div class="footer-section">
@@ -685,6 +819,24 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // WebRTC переменные
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+        let isMuted = false;
+        let isVideoOff = false;
+        let callTimer = null;
+        let callStartTime = null;
+
+        // Конфигурация STUN серверов
+        const servers = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
 
         // Проверка авторизации
         auth.onAuthStateChanged((user) => {
@@ -698,12 +850,12 @@
                 document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
                 
                 // Автозаполнение названия звонка
-                document.querySelector('.form-input').placeholder = `Встреча с ${user.displayName || 'участниками'}`;
+                document.getElementById('callTitle').placeholder = `Встреча с ${user.displayName || 'участниками'}`;
             } else {
                 navButtons.style.display = 'flex';
                 userMenu.style.display = 'none';
                 // Перенаправление на страницу входа если не авторизован
-                window.location.href = 'auth.html';
+                window.location.href = 'login.html';
             }
         });
 
@@ -776,32 +928,135 @@
             
             const callType = document.querySelector('.call-type-option.selected').dataset.type;
             const duration = document.querySelector('.timer-option.selected').dataset.time;
-            const title = document.querySelector('.form-input').value;
-            const description = document.querySelector('.form-textarea').value;
+            const title = document.getElementById('callTitle').value;
+            const description = document.getElementById('callDescription').value;
             
             // Генерация ID звонка
             const callId = generateCallId();
-            const callLink = `call.html?id=${callId}&type=${callType}&duration=${duration}`;
             
-            // Сохранение настроек звонка (в реальном приложении - в базу данных)
+            // Сохранение настроек звонка
             const callSettings = {
                 id: callId,
                 type: callType,
                 duration: duration,
                 title: title,
                 description: description,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                createdBy: auth.currentUser.uid
             };
             
             localStorage.setItem('currentCall', JSON.stringify(callSettings));
             
-            // Переход на страницу звонка
-            window.location.href = callLink;
+            // Запуск звонка
+            startCall(callSettings);
         });
 
         function generateCallId() {
             return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
         }
+
+        // Функции для работы с видеозвонком
+        async function startCall(callSettings) {
+            try {
+                // Показать интерфейс звонка
+                document.querySelector('.create-call-content').style.display = 'none';
+                document.querySelector('.page-header').style.display = 'none';
+                document.querySelector('footer').style.display = 'none';
+                document.getElementById('callContainer').style.display = 'flex';
+                
+                // Установить информацию о звонке
+                document.getElementById('callTitleInfo').textContent = callSettings.title;
+                
+                // Получить доступ к медиаустройствам
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: callSettings.type === 'video',
+                    audio: true
+                });
+                
+                // Отобразить локальное видео
+                document.getElementById('localVideo').srcObject = localStream;
+                
+                // Начать отсчет времени
+                startCallTimer();
+                
+                // В реальном приложении здесь будет логика подключения к другим участникам
+                // через WebRTC и сигнальный сервер
+                
+                // Для демонстрации просто покажем сообщение
+                setTimeout(() => {
+                    alert('В реальном приложении здесь будет подключение к другим участникам через WebRTC');
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error starting call:', error);
+                alert('Ошибка при запуске звонка: ' + error.message);
+                endCall();
+            }
+        }
+
+        function startCallTimer() {
+            callStartTime = new Date();
+            callTimer = setInterval(() => {
+                const now = new Date();
+                const diff = Math.floor((now - callStartTime) / 1000);
+                const minutes = Math.floor(diff / 60);
+                const seconds = diff % 60;
+                document.getElementById('callDuration').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function endCall() {
+            // Остановить медиапотоки
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Остановить таймер
+            if (callTimer) {
+                clearInterval(callTimer);
+            }
+            
+            // Вернуться к форме создания звонка
+            document.querySelector('.create-call-content').style.display = 'block';
+            document.querySelector('.page-header').style.display = 'block';
+            document.querySelector('footer').style.display = 'block';
+            document.getElementById('callContainer').style.display = 'none';
+        }
+
+        // Обработчики кнопок управления звонком
+        document.getElementById('muteBtn').addEventListener('click', function() {
+            if (localStream) {
+                const audioTracks = localStream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    audioTracks[0].enabled = !audioTracks[0].enabled;
+                    isMuted = !audioTracks[0].enabled;
+                    this.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+                    this.style.background = isMuted ? '#ff6b81' : '#2ed573';
+                }
+            }
+        });
+
+        document.getElementById('videoBtn').addEventListener('click', function() {
+            if (localStream) {
+                const videoTracks = localStream.getVideoTracks();
+                if (videoTracks.length > 0) {
+                    videoTracks[0].enabled = !videoTracks[0].enabled;
+                    isVideoOff = !videoTracks[0].enabled;
+                    this.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
+                    this.style.background = isVideoOff ? '#ff6b81' : '#2ed573';
+                }
+            }
+        });
+
+        document.getElementById('endCallBtn').addEventListener('click', endCall);
+
+        // Обработка клавиши Escape для завершения звонка
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('callContainer').style.display === 'flex') {
+                endCall();
+            }
+        });
     </script>
 </body>
 </html>
