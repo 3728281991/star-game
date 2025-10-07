@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -412,6 +413,78 @@
             color: var(--primary);
         }
 
+        /* Success Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+
+        .modal-content h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            margin-bottom: 25px;
+            color: #666;
+        }
+
+        .call-link {
+            background: var(--gray);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .copy-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5a0db8;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
         /* Footer */
         footer {
             background-color: var(--dark);
@@ -494,6 +567,7 @@
             .timer-options { flex-direction: column; }
             .form-actions { flex-direction: column; }
             .footer-content { flex-direction: column; }
+            .modal-actions { flex-direction: column; }
         }
     </style>
 </head>
@@ -581,11 +655,11 @@
                 <h3>Основная информация</h3>
                 <div class="form-group">
                     <label class="form-label">Название звонка *</label>
-                    <input type="text" class="form-input" placeholder="Например: Еженедельный стендап" required>
+                    <input type="text" class="form-input" id="callTitle" placeholder="Например: Еженедельный стендап" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Описание (опционально)</label>
-                    <textarea class="form-textarea" placeholder="О чем будет этот звонок?"></textarea>
+                    <textarea class="form-textarea" id="callDescription" placeholder="О чем будет этот звонок?"></textarea>
                 </div>
             </div>
 
@@ -627,7 +701,7 @@
 
             <div class="form-actions">
                 <button type="submit" class="primary-btn">
-                    <i class="fas fa-phone"></i> Начать звонок
+                    <i class="fas fa-phone"></i> Создать звонок
                 </button>
                 <button type="button" class="secondary-btn" onclick="window.location.href='index.html'">
                     Отмена
@@ -635,6 +709,33 @@
             </div>
         </form>
     </section>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Звонок создан успешно!</h2>
+            <p>Ваш видеозвонок готов к использованию. Поделитесь ссылкой с участниками или присоединитесь сразу.</p>
+            
+            <div class="call-link">
+                <span id="callLinkText">https://pingr.com/call/abc123def</span>
+                <button class="copy-btn" onclick="copyCallLink()">
+                    <i class="fas fa-copy"></i> Копировать
+                </button>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="primary-btn" onclick="joinCall()">
+                    <i class="fas fa-phone"></i> Присоединиться к звонку
+                </button>
+                <button class="secondary-btn" onclick="closeModal()">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
 
     <footer>
         <div class="footer-content">
@@ -685,6 +786,7 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        const db = firebase.firestore();
 
         // Проверка авторизации
         auth.onAuthStateChanged((user) => {
@@ -698,7 +800,7 @@
                 document.getElementById('userInitial').textContent = (user.displayName || user.email).charAt(0).toUpperCase();
                 
                 // Автозаполнение названия звонка
-                document.querySelector('.form-input').placeholder = `Встреча с ${user.displayName || 'участниками'}`;
+                document.getElementById('callTitle').placeholder = `Встреча с ${user.displayName || 'участниками'}`;
             } else {
                 navButtons.style.display = 'flex';
                 userMenu.style.display = 'none';
@@ -776,32 +878,87 @@
             
             const callType = document.querySelector('.call-type-option.selected').dataset.type;
             const duration = document.querySelector('.timer-option.selected').dataset.time;
-            const title = document.querySelector('.form-input').value;
-            const description = document.querySelector('.form-textarea').value;
+            const title = document.getElementById('callTitle').value;
+            const description = document.getElementById('callDescription').value;
             
             // Генерация ID звонка
             const callId = generateCallId();
-            const callLink = `call.html?id=${callId}&type=${callType}&duration=${duration}`;
+            const callLink = `https://pingr.com/call/${callId}`;
             
-            // Сохранение настроек звонка (в реальном приложении - в базу данных)
+            // Сохранение настроек звонка
             const callSettings = {
                 id: callId,
                 type: callType,
                 duration: duration,
                 title: title,
                 description: description,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                createdBy: auth.currentUser.uid,
+                participants: getParticipants(),
+                settings: {
+                    aiSummary: document.getElementById('aiSummary').checked,
+                    recordCall: document.getElementById('recordCall').checked,
+                    waitingRoom: document.getElementById('waitingRoom').checked,
+                    screenShare: document.getElementById('screenShare').checked
+                }
             };
             
+            // Сохраняем в localStorage для демонстрации
             localStorage.setItem('currentCall', JSON.stringify(callSettings));
             
-            // Переход на страницу звонка
-            window.location.href = callLink;
+            // Показываем модальное окно с ссылкой
+            document.getElementById('callLinkText').textContent = callLink;
+            document.getElementById('successModal').style.display = 'flex';
+            
+            // В реальном приложении здесь будет сохранение в базу данных
+            console.log('Call created:', callSettings);
         });
 
         function generateCallId() {
             return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
         }
+
+        function getParticipants() {
+            const participants = [];
+            document.querySelectorAll('.participant-tag').forEach(tag => {
+                const email = tag.textContent.replace('×', '').trim();
+                participants.push(email);
+            });
+            return participants;
+        }
+
+        // Функции для модального окна
+        function copyCallLink() {
+            const linkText = document.getElementById('callLinkText').textContent;
+            navigator.clipboard.writeText(linkText).then(() => {
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Скопировано!';
+                copyBtn.style.background = 'var(--success)';
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.style.background = 'var(--primary)';
+                }, 2000);
+            });
+        }
+
+        function joinCall() {
+            // Переход на страницу звонка
+            const callSettings = JSON.parse(localStorage.getItem('currentCall'));
+            window.location.href = `call.html?id=${callSettings.id}`;
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна по клику вне его
+        document.getElementById('successModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
