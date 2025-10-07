@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pingr - Быстрые звонки. Быстрое решение.</title>
+    <title>Pingr - Видеозвонки нового поколения</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -23,12 +23,17 @@
             --light: #ffffff;
             --dark: #333333;
             --gray: #f5f5f5;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
         }
 
         body {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: var(--light);
             color: var(--dark);
             line-height: 1.6;
+            overflow-x: hidden;
             padding-top: 80px;
         }
 
@@ -53,6 +58,13 @@
             font-weight: 700;
             color: var(--primary);
             text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            font-size: 28px;
         }
 
         .nav-buttons {
@@ -156,45 +168,86 @@
 
         /* Hero Section */
         .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 120px 5% 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
-            color: white;
-            padding: 40px 20px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" opacity="0.1"><polygon fill="white" points="0,1000 1000,0 1000,1000"/></svg>');
+            background-size: cover;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
 
         .hero h1 {
             font-size: 3.5rem;
             margin-bottom: 20px;
-            max-width: 800px;
+            font-weight: 800;
         }
 
         .hero p {
-            font-size: 1.3rem;
-            margin-bottom: 40px;
-            max-width: 600px;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
         }
 
-        .cta-btn {
-            background-color: var(--accent);
-            color: white;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .hero-btn {
+            padding: 15px 30px;
             border-radius: 30px;
-            border: none;
+            font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-weight: 600;
-            margin-bottom: 60px;
-            box-shadow: 0 4px 15px rgba(255, 77, 141, 0.4);
+            border: none;
         }
 
-        .cta-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(255, 77, 141, 0.6);
+        .primary-hero-btn {
+            background: var(--accent);
+            color: white;
+        }
+
+        .primary-hero-btn:hover {
+            background: #ff3d7f;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 77, 141, 0.3);
+        }
+
+        .secondary-hero-btn {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .secondary-hero-btn:hover {
+            background: white;
+            color: var(--primary);
         }
 
         .features {
@@ -203,6 +256,7 @@
             gap: 40px;
             flex-wrap: wrap;
             max-width: 1000px;
+            margin-top: 60px;
         }
 
         .feature {
@@ -228,6 +282,76 @@
         .feature h3 {
             font-size: 1.3rem;
             margin-bottom: 10px;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 80px 5%;
+            background: var(--light);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .section-title p {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 2rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
         }
 
         /* How It Works Section */
@@ -330,6 +454,57 @@
             margin-bottom: 15px;
         }
 
+        /* Demo Section */
+        .demo {
+            padding: 80px 5%;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+
+        .demo-content {
+            flex: 1;
+        }
+
+        .demo-content h2 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .demo-content p {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.7;
+        }
+
+        .demo-video {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
         /* Footer */
         footer {
             background-color: var(--dark);
@@ -423,6 +598,7 @@
             width: 90%;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.3s ease;
+            overflow: hidden;
         }
         
         .modal-header {
@@ -431,11 +607,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
         }
         
         .modal-header h3 {
             margin: 0;
-            color: var(--primary);
             font-size: 1.5rem;
         }
         
@@ -444,57 +621,49 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: #666;
+            color: white;
             padding: 5px;
+            transition: all 0.3s ease;
         }
         
         .close-modal:hover {
             color: var(--accent);
+            transform: scale(1.1);
         }
         
         .modal-body {
-            padding: 25px 30px;
+            padding: 30px;
+            text-align: center;
         }
         
-        .link-container {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
+        .modal-icon {
+            font-size: 4rem;
+            color: var(--accent);
+            margin-bottom: 20px;
         }
         
-        #callLinkInput {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #f9f9f9;
-        }
-        
-        .copy-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .copy-btn:hover {
-            background: #5a0db8;
+        .modal-message {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            color: #555;
+            line-height: 1.6;
         }
         
         .modal-actions {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
         }
         
         .modal-actions .btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px 20px;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 140px;
         }
         
         .primary-btn {
@@ -504,6 +673,7 @@
         
         .primary-btn:hover {
             background: #ff3d7f;
+            transform: translateY(-2px);
         }
         
         .secondary-btn {
@@ -513,6 +683,7 @@
         
         .secondary-btn:hover {
             background: #5a0db8;
+            transform: translateY(-2px);
         }
         
         .outline-btn {
@@ -542,68 +713,7 @@
             }
         }
 
-        .hero-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
-            margin: 10px;
-        }
-
-        .hero-btn {
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: none;
-        }
-
-        .primary-hero-btn {
-            background: var(--accent);
-            color: white;
-        }
-
-        .primary-hero-btn:hover {
-            background: #ff3d7f;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(255, 77, 141, 0.3);
-        }
-
-        .secondary-hero-btn {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-
-        .secondary-hero-btn:hover {
-            background: white;
-            color: var(--primary);
-        }
-
-        
-        /* Адаптивность */
-        @media (max-width: 768px) {
-            .modal-content {
-                width: 95%;
-                margin: 20px;
-            }
-            
-            .modal-actions {
-                flex-direction: column;
-            }
-            
-            .link-container {
-                flex-direction: column;
-            }
-
-            .hero-buttons { flex-direction: column; align-items: center; }
-        }
-
-        
         /* Responsive */
-        /* Мобильная адаптация */
         @media (max-width: 768px) {
             body {
                 padding-top: 70px;
@@ -648,7 +758,7 @@
             }
             
             .hero {
-                padding: 20px 15px;
+                padding: 100px 5% 60px;
                 min-height: calc(100vh - 70px);
             }
             
@@ -662,14 +772,14 @@
                 margin-bottom: 30px;
             }
             
-            .cta-btn {
-                padding: 12px 30px;
-                font-size: 1rem;
-                margin-bottom: 40px;
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
             }
             
             .features {
                 gap: 20px;
+                justify-content: center;
             }
             
             .feature {
@@ -733,12 +843,16 @@
                 font-size: 1.3rem;
             }
             
-            footer {
-                padding: 30px 5% 20px;
+            .demo-container {
+                flex-direction: column;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
             }
             
             .footer-content {
-                gap: 30px;
+                flex-direction: column;
             }
             
             .footer-section {
@@ -747,6 +861,19 @@
             
             .social-icons {
                 justify-content: center;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+            }
+            
+            .modal-actions .btn {
+                min-width: auto;
             }
         }
         
@@ -784,8 +911,11 @@
                 padding: 8px 15px;
                 font-size: 14px;
             }
+            
+            .modal-body {
+                padding: 20px;
+            }
         }
-        
         
         /* Горизонтальная ориентация */
         @media (max-height: 500px) and (orientation: landscape) {
@@ -804,10 +934,6 @@
                 margin-bottom: 20px;
             }
             
-            .cta-btn {
-                margin-bottom: 30px;
-            }
-            
             .features {
                 flex-direction: row;
                 flex-wrap: nowrap;
@@ -820,41 +946,51 @@
                 min-width: 200px;
                 flex-shrink: 0;
             }
+            
+            .modal-content {
+                max-height: 90vh;
+                overflow-y: auto;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header>
-    <a href="#" class="logo">Pingr</a>
-    <div class="nav-buttons">
-        <button class="btn login-btn" onclick="window.location.href='login.html'">Войти</button>
-        <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
-    </div>
-    <div class="user-menu" id="userMenu">
-        <div class="user-avatar" id="userAvatar">
-            <span id="userInitial">U</span>
+        <a href="#" class="logo">
+            <i class="fas fa-video"></i>
+            Pingr
+        </a>
+        <div class="nav-buttons">
+            <button class="btn login-btn" onclick="window.location.href='login.html'">Войти</button>
+            <button class="btn register-btn" onclick="window.location.href='login.html'">Регистрация</button>
         </div>
-        <span class="user-name" id="userName">Пользователь</span>
-        <div class="user-dropdown">
-            <a href="#" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
-            <a href="#" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
-            <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
+        <div class="user-menu" id="userMenu">
+            <div class="user-avatar" id="userAvatar">
+                <span id="userInitial">U</span>
+            </div>
+            <span class="user-name" id="userName">Пользователь</span>
+            <div class="user-dropdown">
+                <a href="#" class="dropdown-item"><i class="fas fa-user"></i>Профиль</a>
+                <a href="#" class="dropdown-item"><i class="fas fa-cog"></i>Настройки</a>
+                <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i>Выйти</a>
+            </div>
         </div>
-    </div>
-</header>
+    </header>
 
     <!-- Hero Section -->
     <section class="hero">
-        <h1>Видеозвонки нового поколения.</h1>
-        <p>Общайтесь, сотрудничайте и вдохновляйтесь вместе с Pingr. Высококачественные видеозвонки с AI-функциями, интерактивными реакциями и всем необходимым для продуктивной работы.</p>
-        <div class="hero-buttons">
-                <button class="hero-btn primary-hero-btn" onclick="startNewCall()">
+        <div class="hero-content">
+            <h1>Видеозвонки нового поколения</h1>
+            <p>Общайтесь, сотрудничайте и вдохновляйтесь вместе с Pingr. Высококачественные видеозвонки с AI-функциями, интерактивными реакциями и всем необходимым для продуктивной работы.</p>
+            <div class="hero-buttons">
+                <button class="hero-btn primary-hero-btn" id="startCallBtn">
                     <i class="fas fa-plus"></i> Начать звонок
                 </button>
-                <button class="hero-btn secondary-hero-btn" onclick="joinCall()">
+                <button class="hero-btn secondary-hero-btn" id="joinCallBtn">
                     <i class="fas fa-phone"></i> Присоединиться
                 </button>
+            </div>
         </div>
         
         <div class="features">
@@ -872,6 +1008,58 @@
                 <i class="fas fa-heart"></i>
                 <h3>Интерактивные реакции</h3>
                 <p>Лайки, вопросы, мини-опросы</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="section-title">
+            <h2>Почему выбирают Pingr?</h2>
+            <p>Инновационные функции, которые делают ваше общение эффективным и приятным</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h3>Мгновенное подключение</h3>
+                <p>Присоединяйтесь к звонкам одним кликом без установки дополнительного ПО. Работает прямо в браузере!</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3>AI-помощник</h3>
+                <p>Автоматическая транскрипция, перевод в реальном времени и умные резюме встреч после их завершения.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-grin-stars"></i>
+                </div>
+                <h3>Интерактивные реакции</h3>
+                <p>Выражайте эмоции с помощью анимированных эмодзи, которые появляются на экране как в TikTok!</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Безопасность</h3>
+                <p>End-to-end шифрование, контроль доступа и защита ваших данных в соответствии с мировыми стандартами.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>Комнаты для обсуждений</h3>
+                <p>Создавайте отдельные комнаты для групповой работы и легко переключайтесь между ними.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-palette"></i>
+                </div>
+                <h3>Виртуальный фон</h3>
+                <p>Используйте готовые фоны или загружайте свои собственные для профессионального вида на звонках.</p>
             </div>
         </div>
     </section>
@@ -921,6 +1109,28 @@
                 <i class="fas fa-mobile-alt"></i>
                 <h3>Удобно</h3>
                 <p>Работает в любом браузере или мобильном устройстве</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo">
+        <div class="demo-container">
+            <div class="demo-content">
+                <h2>Попробуйте Pingr прямо сейчас</h2>
+                <p>Для демонстрации возможностей платформы необходимо войти в систему. Зарегистрируйтесь, чтобы создать тестовый звонок и пригласить коллег или друзей.</p>
+                <p>После регистрации вы сможете опробовать интерактивные реакции, демонстрацию экрана, виртуальный фон и многие другие функции.</p>
+                <button class="hero-btn primary-hero-btn" id="demoCallBtn" disabled style="opacity: 0.6; cursor: not-allowed;">
+                    <i class="fas fa-play"></i> Демо-режим временно недоступен
+                </button>
+            </div>
+            <div class="demo-video">
+                <div class="video-placeholder">
+                    <div>
+                        <i class="fas fa-video" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <p>Демонстрация интерфейса Pingr</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -994,7 +1204,7 @@
                 });
             }, observerOptions);
             
-            const elementsToAnimate = document.querySelectorAll('.feature, .step, .benefit-card');
+            const elementsToAnimate = document.querySelectorAll('.feature, .step, .benefit-card, .feature-card');
             elementsToAnimate.forEach(el => {
                 el.style.opacity = 0;
                 el.style.transform = 'translateY(20px)';
@@ -1025,43 +1235,39 @@
                     window.location.reload();
                 });
             });
-        
-            // Создание звонка - ИСПРАВЛЕННЫЙ КОД
-            const createCallBtn = document.getElementById('createCallBtn');
-            if (createCallBtn) {
-                createCallBtn.addEventListener('click', function() {
-                    auth.onAuthStateChanged((user) => {
-                        if (user) {
-                            // Пользователь авторизован - переходим на страницу создания звонка
-                            window.location.href = 'create-call.html';
-                        } else {
-                            // Пользователь не авторизован - предлагаем войти
-                            showAuthModal();
-                        }
-                    });
-                });
-            }
+            
+            // Обработчики кнопок
+            document.getElementById('startCallBtn').addEventListener('click', startNewCall);
+            document.getElementById('joinCallBtn').addEventListener('click', joinCall);
         });
         
-        // Функция показа модального окна авторизации
-        function showAuthModal() {
+        // Функция показа модального окна для неавторизованных пользователей
+        function showAuthRequiredModal(action) {
+            const actionText = action === 'start' ? 'начать звонок' : 'присоединиться к звонку';
+            
             const modalHTML = `
                 <div class="modal-overlay" id="authModal">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h3>Войдите в аккаунт</h3>
+                            <h3>Требуется авторизация</h3>
                             <button class="close-modal">&times;</button>
                         </div>
                         <div class="modal-body">
-                            <p>Для создания звонка необходимо войти в систему</p>
+                            <div class="modal-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="modal-message">
+                                <p>Для того чтобы ${actionText}, необходимо войти в систему.</p>
+                                <p>У вас еще нет аккаунта? Зарегистрируйтесь, это займет всего пару минут!</p>
+                            </div>
                             <div class="modal-actions">
-                                <button class="btn primary-btn" id="loginBtn">
+                                <button class="btn primary-btn" id="goToLoginBtn">
                                     <i class="fas fa-sign-in-alt"></i> Войти
                                 </button>
-                                <button class="btn secondary-btn" id="registerBtn">
+                                <button class="btn secondary-btn" id="goToRegisterBtn">
                                     <i class="fas fa-user-plus"></i> Регистрация
                                 </button>
-                                <button class="btn outline-btn" id="cancelAuthBtn">
+                                <button class="btn outline-btn" id="cancelBtn">
                                     Отмена
                                 </button>
                             </div>
@@ -1072,19 +1278,21 @@
             
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             
-            // Настройка событий для модального окна авторизации
+            // Настройка событий для модального окна
             const modal = document.getElementById('authModal');
             const closeBtn = modal.querySelector('.close-modal');
-            const loginBtn = modal.querySelector('#loginBtn');
-            const registerBtn = modal.querySelector('#registerBtn');
-            const cancelBtn = modal.querySelector('#cancelAuthBtn');
+            const goToLoginBtn = modal.querySelector('#goToLoginBtn');
+            const goToRegisterBtn = modal.querySelector('#goToRegisterBtn');
+            const cancelBtn = modal.querySelector('#cancelBtn');
             
             closeBtn.addEventListener('click', closeModal);
             cancelBtn.addEventListener('click', closeModal);
-            loginBtn.addEventListener('click', function() {
+            
+            goToLoginBtn.addEventListener('click', function() {
                 window.location.href = 'login.html';
             });
-            registerBtn.addEventListener('click', function() {
+            
+            goToRegisterBtn.addEventListener('click', function() {
                 window.location.href = 'login.html';
             });
             
@@ -1103,23 +1311,29 @@
             });
         }
         
-        // Обработка навигации для кнопок в хедере
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginBtn = document.querySelector('.login-btn');
-            const registerBtn = document.querySelector('.register-btn');
-            
-            if (loginBtn) {
-                loginBtn.addEventListener('click', function() {
-                    window.location.href = 'login.html';
-                });
-            }
-            
-            if (registerBtn) {
-                registerBtn.addEventListener('click', function() {
-                    window.location.href = 'login.html';
-                });
-            }
-        });
+        function startNewCall() {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    // Пользователь авторизован - переходим на страницу создания звонка
+                    window.location.href = 'create-call.html';
+                } else {
+                    // Пользователь не авторизован - показываем модальное окно
+                    showAuthRequiredModal('start');
+                }
+            });
+        }
+
+        function joinCall() {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    // Пользователь авторизован - переходим на страницу присоединения
+                    window.location.href = 'join-call.html';
+                } else {
+                    // Пользователь не авторизован - показываем модальное окно
+                    showAuthRequiredModal('join');
+                }
+            });
+        }
     </script>
 </body>
 </html>
